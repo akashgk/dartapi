@@ -4,24 +4,29 @@ void generateController(String name) {
   final controllerFile = 'lib/src/controllers/${name.toLowerCase()}_controller.dart';
 
   final controllerContent = '''
-import 'package:dartapi/dartapi.dart';
+import 'package:shelf/shelf.dart';
+import 'base_controller.dart';
 
-@Route('/${name.toLowerCase()}')
-class ${name}Controller {
-  @Get('/')
-  Response getAll() {
-    return Response.json({'message': '$name List'});
+class ${name}Controller extends BaseController {
+  @override
+  List<RouteDefinition> get routes => [
+        RouteDefinition('GET', '/${name.toLowerCase()}', getAll),
+        RouteDefinition('POST', '/${name.toLowerCase()}', create),
+      ];
+
+  Response getAll(Request request) {
+    return Response.ok('{"message": "$name List"}', headers: {'Content-Type': 'application/json'});
   }
 
-  @Post('/')
-  Response create(@Body() Map<String, dynamic> data) {
-    return Response.json({'message': '$name Created', 'data': data});
+  Response create(Request request) async {
+    final body = await request.readAsString();
+    return Response.ok('{"message": "$name Created", "data": \$body}', headers: {'Content-Type': 'application/json'});
   }
 }
 ''';
 
   File(controllerFile).createSync(recursive: true);
   File(controllerFile).writeAsStringSync(controllerContent);
-  
-  print('✅ Controller $name created successfully at $controllerFile');
+
+  print('✅ Controller ${name}Controller created successfully at $controllerFile');
 }

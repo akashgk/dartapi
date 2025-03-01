@@ -1,0 +1,21 @@
+name: dartapi
+description: A lightweight, FastAPI-like framework for Dart.
+version: 0.0.1
+# repository: https://github.com/my_org/my_repo
+
+environment:
+  sdk: ^3.7.0
+
+# Add regular dependencies here.
+dependencies:
+  shelf: ^1.4.0
+  shelf_router: ^1.1.3
+  shelf_static: ^1.1.0
+  path: ^1.8.3
+
+dev_dependencies:
+  test: ^1.22.0
+  lints: ^2.0.0
+
+executables:
+  dartapi: dartapi

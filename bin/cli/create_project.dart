@@ -1,7 +1,7 @@
 import 'dart:io';
 
 void createProject(String name) {
-  print('📦 Creating DartAPI project: $name');
+  print('📦 Creating your New DartAPI project: $name');
 
   // ✅ Create a Dart application (not a library)
   Process.runSync('dart', ['create', name]);
@@ -12,12 +12,13 @@ void createProject(String name) {
     '$name/lib/src/models',
     '$name/lib/src/middleware',
     '$name/lib/src/db',
+    '$name/lib/src/dto',
+    '$name/lib/src/utils',
     '$name/bin',
     '$name/test',
   ];
 
   final files = {
-    // ✅ **Main entry point**
     '$name/bin/main.dart': '''
 import 'package:$name/src/core/server.dart';
 import 'package:$name/src/controllers/user_controller.dart';
@@ -39,7 +40,6 @@ void main(List<String> args) {
 }
 ''',
 
-    // ✅ **pubspec.yaml**
     '$name/pubspec.yaml': '''
 name: $name
 description: A FastAPI-like framework for Dart.
@@ -56,12 +56,10 @@ dev_dependencies:
   lints: ^5.1.1
 ''',
 
-    // ✅ **Analysis Options (Fixes `lints/recommended.yaml` issue)**
     '$name/analysis_options.yaml': '''
 include: package:lints/recommended.yaml
 ''',
 
-    // ✅ **Core Server File**
     '$name/lib/src/core/server.dart': '''
 import 'package:$name/src/middleware/logging.dart';
 import 'package:shelf/shelf_io.dart' as io;
@@ -89,10 +87,13 @@ class DartAPI {
 }
 ''',
 
-    // ✅ **Router File**
     '$name/lib/src/core/router.dart': '''
+import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
-import '../controllers/base_controller.dart';
+
+import 'package:$name/src/controllers/base_controller.dart';
+import 'package:$name/src/middleware/request_validation.dart';
+
 
 class RouterManager {
   final Router _router = Router();
@@ -101,13 +102,20 @@ class RouterManager {
 
   void registerController(BaseController controller) {
     for (var route in controller.routes) {
-      _router.add(route.method, route.path, route.handler);
+      Handler finalHandler = route.handler;
+
+      if (route.dtoParser != null) {
+        final middleware = validateRequestMiddleware(route.dtoParser!);
+        finalHandler = middleware(route.handler);
+      }
+
+      _router.add(route.method, route.path, finalHandler);
     }
   }
 }
+
 ''',
 
-    // ✅ **Base Controller (Fixes `BaseController` Not Found Issue)**
     '$name/lib/src/controllers/base_controller.dart': '''
 import 'package:shelf/shelf.dart';
 
@@ -115,17 +123,21 @@ abstract class BaseController {
   List<RouteDefinition> get routes;
 }
 
-class RouteDefinition {
+class RouteDefinition<T> {
   final String method;
   final String path;
   final Handler handler;
+  final T Function(String?)? dtoParser;
 
-  RouteDefinition(this.method, this.path, this.handler);
+  RouteDefinition(this.method, this.path, this.handler, {this.dtoParser});
 }
+
 ''',
 
-    // ✅ **User Controller (Example)**
     '$name/lib/src/controllers/user_controller.dart': '''
+import 'dart:convert';
+
+import 'package:$name/src/dto/user_dto.dart';
 import 'package:shelf/shelf.dart';
 import 'base_controller.dart';
 
@@ -133,20 +145,61 @@ class UserController extends BaseController {
   @override
   List<RouteDefinition> get routes => [
         RouteDefinition('GET', '/users', getAllUsers),
-        RouteDefinition('POST', '/users', createUser),
+        RouteDefinition<UserDTO>(
+          'POST',
+          '/users',
+          createUser,
+          dtoParser: (jsonString) => UserDTO.fromJson(jsonString!),
+        ),
       ];
 
   Response getAllUsers(Request request) {
-    return Response.ok('{"users": ["Christy", "Akash"]}', headers: {'Content-Type': 'application/json'});
+    return Response.ok('{"users": ["Christy", "Akash"]}',
+        headers: {'Content-Type': 'application/json'});
   }
 
-  Response createUser(Request request) {
-    return Response.ok('{"message": "User created"}', headers: {'Content-Type': 'application/json'});
+  Future<Response> createUser(Request request) async {
+    final dto = request.context['dto'] as UserDTO;
+
+    return Response.ok(jsonEncode({'message': 'User \${dto.name} created'}),
+        headers: {'Content-Type': 'application/json'});
   }
 }
 ''',
 
-    // ✅ **Middleware (for logging, auth, etc.)**
+    '$name/lib/src/db/database.dart': '''
+class Database {
+  static void connect() {
+    print('🔗 Connecting to database...');
+  }
+}
+''',
+
+    '$name/lib/src/dto/user_dto.dart': '''
+import 'dart:convert';
+
+import 'package:$name/src/utils/utils.dart';
+
+class UserDTO {
+  final String name;
+  final int age;
+  final String email;
+
+  UserDTO({required this.name, required this.age, required this.email});
+
+  factory UserDTO.fromJson(String jsonStr) {
+    final jsonData = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+    return UserDTO(
+      name: jsonData.verifyKey<String>('name'),
+      age: jsonData.verifyKey<int>('age'),
+      email: jsonData.verifyKey<String>('email'),
+    );
+  }
+}
+
+''',
+
     '$name/lib/src/middleware/logging.dart': '''
 import 'package:shelf/shelf.dart';
 
@@ -161,31 +214,78 @@ Middleware loggingMiddleware() {
 }
 ''',
 
-    // ✅ **Database File (Dummy for Expansion)**
-    '$name/lib/src/db/database.dart': '''
-class Database {
-  static void connect() {
-    print('🔗 Connecting to database...');
+    '$name/lib/src/middleware/request_validation.dart': '''
+import 'dart:convert';
+
+import 'package:shelf/shelf.dart';
+
+Middleware validateRequestMiddleware<T>(T Function(String) parser) {
+  return (Handler innerHandler) {
+    return (Request request) async {
+      try {
+        final body = await request.readAsString();
+        final dto = parser(body);
+        request = request.change(context: {'dto': dto});
+        return innerHandler(request);
+      } catch (e) {
+        return Response.badRequest(
+            body: jsonEncode({'error': e.toString()}),
+            headers: {'Content-Type': 'application/json'});
+      }
+    };
+  };
+}
+
+''',
+
+    '$name/lib/src/utils/validators.dart': '''
+abstract class Validators {
+  bool validate(dynamic value);
+}
+
+class EmailValidator implements Validators {
+  @override
+  bool validate(dynamic value) {
+    return (value is! String || !value.contains('@'));
   }
 }
+
+''',
+
+    '$name/lib/src/utils/extensions.dart': '''
+extension MapExtensions on Map<String, dynamic> {
+  T verifyKey<T>(String key) {
+    if (!containsKey(key)) {
+      throw Exception('Invalid or missing "\$key"');
+    }
+    if (this[key] is! T) {
+      throw Exception('Invalid or missing "\$key"');
+    }
+    return this[key] as T;
+  }
+}
+
+''',
+
+    '$name/lib/src/utils/utils.dart': '''
+export 'validators.dart';
+export 'extensions.dart';
 ''',
   };
 
-  // ✅ **Create directories**
   for (var dir in directories) {
+    print("Directory: $dir created ✅");
     Directory(dir).createSync(recursive: true);
   }
 
-  // ✅ **Create files**
   for (var file in files.entries) {
     File(file.key).writeAsStringSync(file.value);
   }
-
+  print('******************************');
   print('🚀 DartAPI project $name created successfully! 🚀');
   print('******************************');
   print('📌 cd $name');
   print('📌 dart pub get');
   print('📌 dartapi run --port=8080');
   print('******************************');
-
 }

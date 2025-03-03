@@ -8,7 +8,13 @@
 ✅ **CLI Tool** - Generate projects, controllers, and models using the `dartapi` CLI.  
 
 ## 0.0.2
-✅ **CLI Tool** - Generate projects, controllers, and models using the `dartapi` CLI.  
+✅ **CLI Tool** - Generate projects, controllers, and models using the `dartapi` CLI.
+
+## 0.0.3
+✅ **Request Validation Middleware** - Request Validation using MiddleWare support Added and template generated
+
+
+
 
 
 

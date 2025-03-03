@@ -1,6 +1,6 @@
 name: dartapi
 description: A lightweight, FastAPI-like framework for Dart.
-version: 0.0.2
+version: 0.0.3
 repository: https://github.com/akashgk/dartapi
 homepage: https://github.com/akashgk/dartapi
 issue_tracker: https://github.com/akashgk/dartapi/issues
@@ -17,7 +17,7 @@ dependencies:
 
 dev_dependencies:
   test: ^1.22.0
-  lints: ^2.0.0
+  lints: ^5.1.1
 
 executables:
   dartapi: dartapi

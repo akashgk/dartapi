@@ -18,7 +18,7 @@ class ${name}Controller extends BaseController {
     return Response.ok('{"message": "$name List"}', headers: {'Content-Type': 'application/json'});
   }
 
-  Response create(Request request) async {
+  Future<Response> create(Request request) async {
     final body = await request.readAsString();
     return Response.ok('{"message": "$name Created", "data": \$body}', headers: {'Content-Type': 'application/json'});
   }

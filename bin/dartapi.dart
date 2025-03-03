@@ -7,7 +7,7 @@ import 'cli/generate_controllers.dart';
 
 void main(List<String> args) {
   if (args.isEmpty) {
-    print('⚡ DartAPI CLI');
+    print('👀 DartAPI CLI');
     print('Usage: dartapi <command>');
     print('\nAvailable commands:');
     print('  create <project_name>  - Create a new DartAPI project');

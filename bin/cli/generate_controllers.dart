@@ -1,7 +1,8 @@
 import 'dart:io';
 
 void generateController(String name) {
-  final controllerFile = 'lib/src/controllers/${name.toLowerCase()}_controller.dart';
+  final controllerFile =
+      'lib/src/controllers/${name.toLowerCase()}_controller.dart';
 
   final controllerContent = '''
 import 'package:shelf/shelf.dart';
@@ -28,5 +29,7 @@ class ${name}Controller extends BaseController {
   File(controllerFile).createSync(recursive: true);
   File(controllerFile).writeAsStringSync(controllerContent);
 
-  print('✅ Controller ${name}Controller created successfully at $controllerFile');
+  print(
+    '✅ Controller ${name}Controller created successfully at $controllerFile',
+  );
 }

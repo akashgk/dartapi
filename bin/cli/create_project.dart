@@ -101,12 +101,17 @@ class RouterManager {
   Router get handler => _router;
 
   void registerController(BaseController controller) {
-    for (var route in controller.routes) {
+    for (RouteDefinition route in controller.routes) {
       Handler finalHandler = route.handler;
 
       if (route.dtoParser != null) {
-        final middleware = validateRequestMiddleware(route.dtoParser!);
+        final Middleware middleware =
+            validateRequestMiddleware(route.dtoParser!);
         finalHandler = middleware(route.handler);
+      }
+
+      for (Middleware routeMiddleWare in route.middlewares) {
+        finalHandler = routeMiddleWare(finalHandler);
       }
 
       _router.add(route.method, route.path, finalHandler);
@@ -123,13 +128,21 @@ abstract class BaseController {
   List<RouteDefinition> get routes;
 }
 
+
 class RouteDefinition<T> {
   final String method;
   final String path;
   final Handler handler;
   final T Function(String?)? dtoParser;
+  final List<Middleware> middlewares;
 
-  RouteDefinition(this.method, this.path, this.handler, {this.dtoParser});
+  RouteDefinition(
+    this.method,
+    this.path,
+    this.handler, {
+    this.dtoParser,
+    this.middlewares = const [],
+  });
 }
 
 ''',

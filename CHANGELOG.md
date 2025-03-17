@@ -1,3 +1,6 @@
+## 0.0.6
+- dart format
+
 ## 0.0.5
 ✅ **Auth Middleware Support** - Add Auth Middleware support for each route.
 ✅ **Auth Middleware Template** - Add Auth Middleware template.

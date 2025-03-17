@@ -5,6 +5,24 @@ import 'cli/create_project.dart';
 import 'cli/run_server.dart';
 import 'cli/generate_controllers.dart';
 
+void printUsage() {
+  print('''
+⚡ DartAPI CLI
+Usage: dartapi <command>
+
+Available commands:
+  --version, -v           Show DartAPI CLI version
+  create <project_name>   Create a new DartAPI project
+  run                     Run the DartAPI server
+  generate controller <name>  Generate a new controller
+
+Example:
+  dartapi create my_project
+  dartapi generate controller User
+  dartapi run
+''');
+}
+
 void main(List<String> args) {
   if (args.isEmpty) {
     print('👀 DartAPI CLI');
@@ -59,6 +77,6 @@ void main(List<String> args) {
       break;
 
     default:
-      print('❌ Unknown command.');
+      printUsage();
   }
 }

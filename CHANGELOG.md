@@ -1,3 +1,10 @@
+## 0.0.5
+✅ **Auth Middleware Support** - Add Auth Middleware support for each route.
+✅ **Auth Middleware Template** - Add Auth Middleware template.
+✅ **Fix Middleware loggin** - Fix a Middle ware logging issue which prevented logs on dartapi run
+✅ **Add Default to CLI**
+
+
 ## 0.0.4
 ✅ **Custom Middleware Support** - Add Custom Middleware support for each route.
 

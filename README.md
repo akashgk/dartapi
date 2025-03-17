@@ -203,3 +203,30 @@ dartapi run --port=8080
 
 
 **✅ Start building APIs with Dart! 🚀🚀🚀**
+
+
+---
+**✅ Adding Auth! 🚀🚀🚀**
+
+Add the dartapi_auth package.
+```sh
+dart pub add dartapi_auth
+```
+
+Currently there is support for JWT using Auth Middleware.
+
+```
+   final jwtService = JwtService(
+    accessTokenSecret: 'super-secret-key',
+    refreshTokenSecret: 'super-refresh-secret',
+    issuer: 'dartapi',
+    audience: 'dartapi-users',
+  );
+  ```
+
+
+  Add the `authMiddleware` Middle ware to the route definition.
+
+  ```
+RouteDefinition('GET', '/users', getAllUsers, middlewares: [authMiddleware(jwtService)]),
+```

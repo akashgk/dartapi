@@ -160,7 +160,7 @@ class RouteDefinition<T> {
 }
 
 ''',
-  '$name/lib/src/controllers/auth_controller.dart': '''
+    '$name/lib/src/controllers/auth_controller.dart': '''
 import 'package:$name/src/dto/login_dto.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:shelf/shelf.dart';

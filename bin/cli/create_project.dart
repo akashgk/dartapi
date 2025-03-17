@@ -22,6 +22,7 @@ void createProject(String name) {
     '$name/bin/main.dart': '''
 import 'package:$name/src/core/server.dart';
 import 'package:$name/src/controllers/user_controller.dart';
+import 'package:$name/src/controllers/auth_controller.dart';
 
 void main(List<String> args) {
   int port = 8080; // Default port
@@ -35,7 +36,10 @@ void main(List<String> args) {
   }
 
   final app = DartAPI();
-  app.addControllers([UserController()]);
+  app.addControllers([
+    UserController(app.jwtService),
+    AuthController(app.jwtService),
+  ]);
   app.start(port: port);
 }
 ''',
@@ -48,6 +52,7 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
+  dartapi_auth: ^0.0.1
   shelf: ^1.4.0
   shelf_router: ^1.1.3
 
@@ -61,14 +66,23 @@ include: package:lints/recommended.yaml
 ''',
 
     '$name/lib/src/core/server.dart': '''
-import 'package:$name/src/middleware/logging.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf/shelf.dart';
 import 'router.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
+
+import 'package:$name/src/middleware/logging.dart';
 import 'package:$name/src/controllers/base_controller.dart';
 
 class DartAPI {
   final RouterManager _router = RouterManager();
+
+  final jwtService = JwtService(
+    accessTokenSecret: 'super-secret-key',
+    refreshTokenSecret: 'super-refresh-secret',
+    issuer: 'dartapi',
+    audience: 'dartapi-users',
+  );
 
   Future<void> start({int port = 8080}) async {
     final handler = Pipeline()
@@ -146,18 +160,96 @@ class RouteDefinition<T> {
 }
 
 ''',
+  '$name/lib/src/controllers/auth_controller.dart': '''
+import 'package:$name/src/dto/login_dto.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:shelf/shelf.dart';
+import 'base_controller.dart';
+
+class AuthController extends BaseController {
+  final JwtService jwtService;
+
+  AuthController(this.jwtService);
+
+  @override
+  List<RouteDefinition> get routes => [
+        RouteDefinition(
+          'POST',
+          '/auth/login',
+          login,
+          dtoParser: (data) => LoginDTO.fromJson(data!),
+        ),
+        RouteDefinition('POST', '/auth/refresh', refreshToken),
+      ];
+
+  Future<Response> login(Request request) async {
+    final dto = request.context['dto'] as LoginDTO;
+
+    if (dto.username == 'admin' && dto.password == '1234') {
+      final accessToken = jwtService.generateAccessToken(claims: {
+        'sub': 'user-123',
+        'username': dto.username,
+      });
+
+      final refreshToken =
+          jwtService.generateRefreshToken(accessToken: accessToken);
+
+      return Response.ok(
+          '{"access_token": "\$accessToken", "refresh_token": "\$refreshToken"}',
+          headers: {'Content-Type': 'application/json'});
+    }
+
+    return Response.forbidden('{"error": "Invalid credentials"}',
+        headers: {'Content-Type': 'application/json'});
+  }
+
+  Future<Response> refreshToken(Request request) async {
+    final body = await request.readAsString();
+    final data = Uri.splitQueryString(body);
+
+    final refreshToken = data['refresh_token'];
+    if (refreshToken == null) {
+      return Response.forbidden('{"error": "Missing refresh token"}',
+          headers: {'Content-Type': 'application/json'});
+    }
+
+    final payload = jwtService.verifyRefreshToken(refreshToken);
+    if (payload == null) {
+      return Response.forbidden('{"error": "Invalid or expired refresh token"}',
+          headers: {'Content-Type': 'application/json'});
+    }
+
+    final newAccessToken = jwtService.generateAccessToken(claims: {
+      'sub': payload['sub'],
+      'username': payload['username'],
+    });
+
+    return Response.ok('{"access_token": "\$newAccessToken"}',
+        headers: {'Content-Type': 'application/json'});
+  }
+
+}
+
+''',
 
     '$name/lib/src/controllers/user_controller.dart': '''
 import 'dart:convert';
+import 'package:dartapi_auth/dartapi_auth.dart';
+
 
 import 'package:$name/src/dto/user_dto.dart';
 import 'package:shelf/shelf.dart';
 import 'base_controller.dart';
 
 class UserController extends BaseController {
+  final JwtService jwtService;
+
+  UserController(this.jwtService);
+
   @override
   List<RouteDefinition> get routes => [
-        RouteDefinition('GET', '/users', getAllUsers),
+        RouteDefinition('GET', '/users', getAllUsers,
+            middlewares: [authMiddleware(jwtService)]),
         RouteDefinition<UserDTO>(
           'POST',
           '/users',
@@ -207,6 +299,29 @@ class UserDTO {
       name: jsonData.verifyKey<String>('name'),
       age: jsonData.verifyKey<int>('age'),
       email: jsonData.verifyKey<String>('email'),
+    );
+  }
+}
+
+''',
+
+    '$name/lib/src/dto/login_dto.dart': '''
+import 'dart:convert';
+
+import 'package:$name/src/utils/utils.dart';
+
+class LoginDTO {
+  final String username;
+  final String password;
+
+  LoginDTO({required this.username, required this.password});
+
+  factory LoginDTO.fromJson(String jsonStr) {
+    final jsonData = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+    return LoginDTO(
+      username: jsonData.verifyKey<String>('username'),
+      password: jsonData.verifyKey<String>('password'),
     );
   }
 }

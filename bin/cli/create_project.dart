@@ -54,6 +54,7 @@ environment:
 dependencies:
   dartapi_auth: ^0.0.1
   shelf: ^1.4.0
+  shelf_cors_headers: ^0.1.5
   shelf_router: ^1.1.3
 
 dev_dependencies:
@@ -66,13 +67,15 @@ include: package:lints/recommended.yaml
 ''',
 
     '$name/lib/src/core/server.dart': '''
-import 'package:shelf/shelf_io.dart' as io;
-import 'package:shelf/shelf.dart';
-import 'router.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:shelf/shelf.dart';
+import 'package:shelf/shelf_io.dart' as io;
+import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 
-import 'package:$name/src/middleware/logging.dart';
 import 'package:$name/src/controllers/base_controller.dart';
+import 'package:$name/src/middleware/logging.dart';
+
+import 'router.dart';
 
 class DartAPI {
   final RouterManager _router = RouterManager();
@@ -86,7 +89,14 @@ class DartAPI {
 
   Future<void> start({int port = 8080}) async {
     final handler = Pipeline()
-        .addMiddleware(loggingMiddleware()) 
+        .addMiddleware(loggingMiddleware())
+        .addMiddleware(corsHeaders(
+          headers: {
+            ACCESS_CONTROL_ALLOW_ORIGIN: '*',
+            ACCESS_CONTROL_ALLOW_METHODS: 'GET, POST, PUT, DELETE, OPTIONS',
+            ACCESS_CONTROL_ALLOW_HEADERS: '*',
+          },
+        ))
         .addHandler(_router.handler.call);
 
     await io.serve(handler, '0.0.0.0', port);

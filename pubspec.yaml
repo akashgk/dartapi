@@ -1,6 +1,6 @@
 name: dartapi
 description: DartAPI A lightweight, FastAPI-inspired framework for building scalable, high-performance REST APIs in Dart with built-in routing, middleware, and CLI support.
-version: 0.0.6
+version: 0.0.7
 repository: https://github.com/akashgk/dartapi
 homepage: https://github.com/akashgk/dartapi
 issue_tracker: https://github.com/akashgk/dartapi/issues

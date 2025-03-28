@@ -1,3 +1,10 @@
+## 0.0.8
+- Improve type safety for Api Request Response
+- Implemented Common Serailization Validation
+- Changed HTTP Methods.
+- Add Meta Data for OpenAPi Implementation
+- Add More logs
+
 ## 0.0.7
 - CORS support
 

@@ -44,6 +44,37 @@ void main(List<String> args) {
 }
 ''',
 
+    '$name/lib/src/models/token_response.dart': '''
+import 'package:$name/src/core/serializable.dart';
+
+class TokenResponse implements Serializable{
+  final String accessToken;
+  final String refreshToken;
+
+  const TokenResponse({
+    required this.accessToken,
+    required this.refreshToken,
+  });
+
+  static Map<String, dynamic> get schema => {
+        'type': 'object',
+        'properties': {
+          'accessToken': {'type': 'string'},
+          'refreshToken': {'type': 'string'},
+        },
+      };
+      
+        @override
+        Map<String, dynamic> toJson() {
+          return {
+            'accessToken': accessToken,
+            'refreshToken': refreshToken
+          };
+        }
+      
+}
+''',
+
     '$name/pubspec.yaml': '''
 name: $name
 description: A FastAPI-like framework for Dart.
@@ -72,10 +103,8 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 
-import 'package:$name/src/controllers/base_controller.dart';
+import 'package:$name/src/core/core.dart';
 import 'package:$name/src/middleware/logging.dart';
-
-import 'router.dart';
 
 class DartAPI {
   final RouterManager _router = RouterManager();
@@ -109,15 +138,14 @@ class DartAPI {
     }
   }
 }
+
 ''',
 
     '$name/lib/src/core/router.dart': '''
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
-import 'package:$name/src/controllers/base_controller.dart';
-import 'package:$name/src/middleware/request_validation.dart';
-
+import 'package:$name/src/core/core.dart';
 
 class RouterManager {
   final Router _router = Router();
@@ -125,56 +153,129 @@ class RouterManager {
   Router get handler => _router;
 
   void registerController(BaseController controller) {
-    for (RouteDefinition route in controller.routes) {
+    for (ApiRoute route in controller.routes) {
       Handler finalHandler = route.handler;
-
-      if (route.dtoParser != null) {
-        final Middleware middleware =
-            validateRequestMiddleware(route.dtoParser!);
-        finalHandler = middleware(route.handler);
-      }
 
       for (Middleware routeMiddleWare in route.middlewares) {
         finalHandler = routeMiddleWare(finalHandler);
       }
 
-      _router.add(route.method, route.path, finalHandler);
+      _router.add(route.method.value, route.path, finalHandler);
     }
   }
 }
-
 ''',
-
-    '$name/lib/src/controllers/base_controller.dart': '''
-import 'package:shelf/shelf.dart';
+    '$name/lib/src/core/serializable.dart': '''
+abstract class Serializable {
+  Map<String, dynamic> toJson();
+}
+''',
+    '$name/lib/src/core/base_controller.dart': '''
+import 'api_route.dart';
 
 abstract class BaseController {
-  List<RouteDefinition> get routes;
+  List<ApiRoute> get routes;
 }
+''',
+    '$name/lib/src/core/core.dart': '''
+export 'api_route.dart';
+export 'base_controller.dart';
+export 'router.dart';
+export 'server.dart';
+export 'serializable.dart';
+export 'api_methods.dart';
 
+''',
+    '$name/lib/src/core/api_methods.dart': '''
+enum ApiMethod {
+  get('GET'),
+  post('POST'),
+  put('PUT'),
+  delete('DELETE'),
+  patch('PATCH'),
+  head('HEAD'),
+  options('OPTIONS');
 
-class RouteDefinition<T> {
-  final String method;
-  final String path;
-  final Handler handler;
-  final T Function(String?)? dtoParser;
-  final List<Middleware> middlewares;
+  final String value;
 
-  RouteDefinition(
-    this.method,
-    this.path,
-    this.handler, {
-    this.dtoParser,
-    this.middlewares = const [],
-  });
+  const ApiMethod(this.value);
 }
 
 ''',
-    '$name/lib/src/controllers/auth_controller.dart': '''
-import 'package:$name/src/dto/login_dto.dart';
-import 'package:dartapi_auth/dartapi_auth.dart';
+    '$name/lib/src/core/api_route.dart': '''
+import 'dart:convert';
 import 'package:shelf/shelf.dart';
-import 'base_controller.dart';
+import 'api_methods.dart';
+import 'serializable.dart';
+
+class ApiRoute<ApiInput, ApiOutput> {
+  final ApiMethod method;
+  final String path;
+  final Future<ApiOutput> Function(Request, ApiInput?) typedHandler;
+
+  /// Optional function to parse request body into `RequestInput`
+  final ApiInput? Function(Map<String, dynamic>)? dtoParser;
+
+  final List<Middleware> middlewares;
+
+  final String? summary;
+  final String? description;
+  final Map<String, dynamic>? requestSchema;
+  final Map<String, dynamic>? responseSchema;
+
+  const ApiRoute({
+    required this.method,
+    required this.path,
+    required this.typedHandler,
+    this.dtoParser,
+    this.middlewares = const [],
+    this.summary,
+    this.description,
+    this.requestSchema,
+    this.responseSchema,
+  });
+
+  /// Shelf-compatible handler
+  Handler get handler => (Request request) async {
+        try {
+          ApiInput? dto;
+
+          if (dtoParser != null) {
+            final body = await request.readAsString();
+            dto = dtoParser?.call(jsonDecode(body));
+          }
+
+          final result = await typedHandler(request, dto);
+
+          return Response.ok(
+            _serialize(result),
+            headers: {'Content-Type': 'application/json'},
+          );
+        } catch (e) {
+          return Response.internalServerError(
+            body: _serialize(
+                {'error': 'Internal Server Error', 'message': e.toString()}),
+            headers: {'Content-Type': 'application/json'},
+          );
+        }
+      };
+}
+
+String _serialize(dynamic data) {
+  if (data is String) return data;
+  if (data is Map || data is List) return jsonEncode(data);
+  if (data is Serializable) return jsonEncode(data.toJson());
+
+  throw Exception("Unable to serialize response of type \${data.runtimeType}");
+}
+''',
+
+    '$name/lib/src/controllers/auth_controller.dart': '''
+import 'package:shelf/shelf.dart';
+import 'package:$name/src/core/core.dart';
+import 'package:$name/src/dto/login_dto.dart';
+import 'package:$name/src/models/token_response.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
 
 class AuthController extends BaseController {
   final JwtService jwtService;
@@ -182,51 +283,85 @@ class AuthController extends BaseController {
   AuthController(this.jwtService);
 
   @override
-  List<RouteDefinition> get routes => [
-        RouteDefinition(
-          'POST',
-          '/auth/login',
-          login,
-          dtoParser: (data) => LoginDTO.fromJson(data!),
-        ),
-        RouteDefinition('POST', '/auth/refresh', refreshToken),
+  List<ApiRoute> get routes => [
+        _loginApi(),
+        _refreshTokenApi(),
       ];
 
-  Future<Response> login(Request request) async {
-    final dto = request.context['dto'] as LoginDTO;
+  /// Login Route
+  ApiRoute<LoginDTO, TokenResponse> _loginApi() {
+    return ApiRoute<LoginDTO, TokenResponse>(
+      method: ApiMethod.post,
+      path: '/auth/login',
+      typedHandler: login,
+      dtoParser: (data) {
+        return LoginDTO.fromJson(data);
+      },
+      summary: 'Login',
+      description: 'Authenticate user and return access/refresh tokens.',
+      requestSchema: LoginDTO.schema,
+      responseSchema: TokenResponse.schema,
+    );
+  }
 
-    if (dto.username == 'admin' && dto.password == '1234') {
+  /// Refresh Route
+  ApiRoute<void, Map<String, dynamic>> _refreshTokenApi() {
+    return ApiRoute<void, Map<String, dynamic>>(
+      method: ApiMethod.post,
+      path: '/auth/refresh',
+      typedHandler: refreshToken,
+      summary: 'Refresh Token',
+      description: 'Use a valid refresh token to get a new access token.',
+      requestSchema: {
+        'type': 'object',
+        'properties': {
+          'refresh_token': {'type': 'string'},
+        },
+        'required': ['refresh_token'],
+        'example': {'refresh_token': '...'}
+      },
+      responseSchema: {
+        'type': 'object',
+        'properties': {
+          'access_token': {'type': 'string'},
+        },
+        'required': ['access_token'],
+        'example': {'access_token': '...'}
+      },
+    );
+  }
+
+  /// Typed login handler
+  Future<TokenResponse> login(Request request, LoginDTO? dto) async {
+    if (dto?.username == 'admin' && dto?.password == '1234') {
       final accessToken = jwtService.generateAccessToken(claims: {
         'sub': 'user-123',
-        'username': dto.username,
+        'username': dto!.username,
       });
 
       final refreshToken =
           jwtService.generateRefreshToken(accessToken: accessToken);
 
-      return Response.ok(
-          '{"access_token": "\$accessToken", "refresh_token": "\$refreshToken"}',
-          headers: {'Content-Type': 'application/json'});
+      return TokenResponse(
+          accessToken: accessToken, refreshToken: refreshToken);
     }
 
-    return Response.forbidden('{"error": "Invalid credentials"}',
-        headers: {'Content-Type': 'application/json'});
+    throw Exception('Invalid credentials');
   }
 
-  Future<Response> refreshToken(Request request) async {
+  /// Typed refresh token handler
+  Future<Map<String, dynamic>> refreshToken(Request request, void _) async {
     final body = await request.readAsString();
     final data = Uri.splitQueryString(body);
 
     final refreshToken = data['refresh_token'];
     if (refreshToken == null) {
-      return Response.forbidden('{"error": "Missing refresh token"}',
-          headers: {'Content-Type': 'application/json'});
+      throw Exception('Missing refresh token');
     }
 
     final payload = jwtService.verifyRefreshToken(refreshToken);
     if (payload == null) {
-      return Response.forbidden('{"error": "Invalid or expired refresh token"}',
-          headers: {'Content-Type': 'application/json'});
+      throw Exception('Invalid or expired refresh token');
     }
 
     final newAccessToken = jwtService.generateAccessToken(claims: {
@@ -234,22 +369,16 @@ class AuthController extends BaseController {
       'username': payload['username'],
     });
 
-    return Response.ok('{"access_token": "\$newAccessToken"}',
-        headers: {'Content-Type': 'application/json'});
+    return {'access_token': newAccessToken};
   }
-
 }
-
 ''',
-
     '$name/lib/src/controllers/user_controller.dart': '''
-import 'dart:convert';
+import 'package:shelf/shelf.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
 
-
+import 'package:$name/src/core/core.dart';
 import 'package:$name/src/dto/user_dto.dart';
-import 'package:shelf/shelf.dart';
-import 'base_controller.dart';
 
 class UserController extends BaseController {
   final JwtService jwtService;
@@ -257,27 +386,41 @@ class UserController extends BaseController {
   UserController(this.jwtService);
 
   @override
-  List<RouteDefinition> get routes => [
-        RouteDefinition('GET', '/users', getAllUsers,
-            middlewares: [authMiddleware(jwtService)]),
-        RouteDefinition<UserDTO>(
-          'POST',
-          '/users',
-          createUser,
-          dtoParser: (jsonString) => UserDTO.fromJson(jsonString!),
+  List<ApiRoute> get routes => [
+        /// ✅ GET /users
+        ApiRoute<void, List<String>>(
+          method: ApiMethod.get,
+          path: '/users',
+          typedHandler: getAllUsers,
+          middlewares: [authMiddleware(jwtService)],
+          summary: 'Get all users',
+          description: 'Returns a list of all usernames',
+          responseSchema: {
+            'type': 'array',
+            'items': {'type': 'string'},
+            'example': ['Christy', 'Akash'],
+          },
+        ),
+
+        /// ✅ POST /users
+        ApiRoute<UserDTO, String>(
+          method: ApiMethod.post,
+          path: '/users',
+          typedHandler: createUser,
+          dtoParser: (json) => UserDTO.fromJson(json),
+          summary: 'Create a new user',
+          description: 'Creates a new user with name and email',
+          requestSchema: UserDTO.schema,
+          responseSchema: {'type': 'string', 'example': 'User Christy created'},
         ),
       ];
 
-  Response getAllUsers(Request request) {
-    return Response.ok('{"users": ["Christy", "Akash"]}',
-        headers: {'Content-Type': 'application/json'});
+  Future<List<String>> getAllUsers(Request request, void _) async {
+    return ['Christy', 'Akash'];
   }
 
-  Future<Response> createUser(Request request) async {
-    final dto = request.context['dto'] as UserDTO;
-
-    return Response.ok(jsonEncode({'message': 'User \${dto.name} created'}),
-        headers: {'Content-Type': 'application/json'});
+  Future<String> createUser(Request request, UserDTO? dto) async {
+    return 'User \${dto?.name} created';
   }
 }
 ''',
@@ -291,8 +434,6 @@ class Database {
 ''',
 
     '$name/lib/src/dto/user_dto.dart': '''
-import 'dart:convert';
-
 import 'package:$name/src/utils/utils.dart';
 
 class UserDTO {
@@ -302,8 +443,8 @@ class UserDTO {
 
   UserDTO({required this.name, required this.age, required this.email});
 
-  factory UserDTO.fromJson(String jsonStr) {
-    final jsonData = jsonDecode(jsonStr) as Map<String, dynamic>;
+  factory UserDTO.fromJson(Map<String,dynamic> jsonData) {
+
 
     return UserDTO(
       name: jsonData.verifyKey<String>('name'),
@@ -311,13 +452,23 @@ class UserDTO {
       email: jsonData.verifyKey<String>('email'),
     );
   }
+
+  static const schema = {
+    'type': 'object',
+    'properties': {
+      'name': {'type': 'string'},
+      'email': {'type': 'string'}
+    },
+    'required': ['name', 'email'],
+    'example': {'name': 'Christy', 'email': 'christy@example.com'}
+  };
 }
+
+
 
 ''',
 
     '$name/lib/src/dto/login_dto.dart': '''
-import 'dart:convert';
-
 import 'package:$name/src/utils/utils.dart';
 
 class LoginDTO {
@@ -326,16 +477,24 @@ class LoginDTO {
 
   LoginDTO({required this.username, required this.password});
 
-  factory LoginDTO.fromJson(String jsonStr) {
-    final jsonData = jsonDecode(jsonStr) as Map<String, dynamic>;
+  factory LoginDTO.fromJson(Map<String, dynamic> jsonData) {
+
 
     return LoginDTO(
       username: jsonData.verifyKey<String>('username'),
       password: jsonData.verifyKey<String>('password'),
     );
   }
-}
 
+  static Map<String, dynamic> get schema => {
+        'type': 'object',
+        'properties': {
+          'username': {'type': 'string'},
+          'password': {'type': 'string'},
+        },
+        'required': ['username', 'password'],
+      };
+}
 ''',
 
     '$name/lib/src/middleware/logging.dart': '''
@@ -346,34 +505,11 @@ Middleware loggingMiddleware() {
     return (Request request) async {
       print("📌 Request: \${request.method} \${request.requestedUri}");
       final response = await innerHandler(request);
+      print("📌 Response: \${request.requestedUri}, Status \${response.statusCode}");
       return response;
     };
   };
 }
-''',
-
-    '$name/lib/src/middleware/request_validation.dart': '''
-import 'dart:convert';
-
-import 'package:shelf/shelf.dart';
-
-Middleware validateRequestMiddleware<T>(T Function(String) parser) {
-  return (Handler innerHandler) {
-    return (Request request) async {
-      try {
-        final body = await request.readAsString();
-        final dto = parser(body);
-        request = request.change(context: {'dto': dto});
-        return innerHandler(request);
-      } catch (e) {
-        return Response.badRequest(
-            body: jsonEncode({'error': e.toString()}),
-            headers: {'Content-Type': 'application/json'});
-      }
-    };
-  };
-}
-
 ''',
 
     '$name/lib/src/utils/validators.dart': '''
@@ -387,7 +523,6 @@ class EmailValidator implements Validators {
     return (value is! String || !value.contains('@'));
   }
 }
-
 ''',
 
     '$name/lib/src/utils/extensions.dart': '''

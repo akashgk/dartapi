@@ -1,3 +1,7 @@
+## 0.0.9
+- Separate CORE logic to separeate DartApi_core package
+- Add some linting rules
+
 ## 0.0.8
 - Improve type safety for Api Request Response
 - Implemented Common Serailization Validation

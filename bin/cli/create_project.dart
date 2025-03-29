@@ -45,7 +45,8 @@ void main(List<String> args) {
 ''',
 
     '$name/lib/src/models/token_response.dart': '''
-import 'package:$name/src/core/serializable.dart';
+import 'package:dartapi_core/dartapi_core.dart';
+
 
 class TokenResponse implements Serializable{
   final String accessToken;
@@ -83,7 +84,8 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  dartapi_auth: ^0.0.1
+  dartapi_auth: ^0.0.2
+  dartapi_core: ^0.0.1
   shelf: ^1.4.0
   shelf_cors_headers: ^0.1.5
   shelf_router: ^1.1.3
@@ -95,12 +97,42 @@ dev_dependencies:
 
     '$name/analysis_options.yaml': '''
 include: package:lints/recommended.yaml
+
+analyzer:
+  exclude:
+    - "**.g.dart"
+    - "build/**"
+    - "test/**.mocks.dart"
+
+linter:
+  rules:
+    # Formatting and style
+    always_declare_return_types: true
+    avoid_print: true
+    prefer_single_quotes: true
+    omit_local_variable_types: false
+    lines_longer_than_80_chars: false
+
+    # Code quality
+    prefer_const_constructors: true
+    prefer_final_locals: true
+    avoid_unnecessary_containers: true
+    unnecessary_this: true
+    depend_on_referenced_packages: true
+
+    # Safety
+    avoid_dynamic_calls: true
+    avoid_catches_without_on_clauses: true
+    null_closures: true
 ''',
 
     '$name/lib/src/core/server.dart': '''
-import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
+import 'package:dartapi_core/dartapi_core.dart';
+import 'dart:developer';
+
+import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 
 import 'package:$name/src/core/core.dart';
@@ -117,7 +149,7 @@ class DartAPI {
   );
 
   Future<void> start({int port = 8080}) async {
-    final handler = Pipeline()
+    final handler = const Pipeline()
         .addMiddleware(loggingMiddleware())
         .addMiddleware(corsHeaders(
           headers: {
@@ -129,7 +161,7 @@ class DartAPI {
         .addHandler(_router.handler.call);
 
     await io.serve(handler, '0.0.0.0', port);
-    print('🚀 Server running on http://localhost:\$port');
+    log('🚀 Server running on http://localhost:\$port');
   }
 
   void addControllers(List<BaseController> controllers) {
@@ -144,8 +176,8 @@ class DartAPI {
     '$name/lib/src/core/router.dart': '''
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
+import 'package:dartapi_core/dartapi_core.dart';
 
-import 'package:$name/src/core/core.dart';
 
 class RouterManager {
   final Router _router = Router();
@@ -165,117 +197,17 @@ class RouterManager {
   }
 }
 ''',
-    '$name/lib/src/core/serializable.dart': '''
-abstract class Serializable {
-  Map<String, dynamic> toJson();
-}
-''',
-    '$name/lib/src/core/base_controller.dart': '''
-import 'api_route.dart';
-
-abstract class BaseController {
-  List<ApiRoute> get routes;
-}
-''',
     '$name/lib/src/core/core.dart': '''
-export 'api_route.dart';
-export 'base_controller.dart';
 export 'router.dart';
 export 'server.dart';
-export 'serializable.dart';
-export 'api_methods.dart';
-
 ''',
-    '$name/lib/src/core/api_methods.dart': '''
-enum ApiMethod {
-  get('GET'),
-  post('POST'),
-  put('PUT'),
-  delete('DELETE'),
-  patch('PATCH'),
-  head('HEAD'),
-  options('OPTIONS');
-
-  final String value;
-
-  const ApiMethod(this.value);
-}
-
-''',
-    '$name/lib/src/core/api_route.dart': '''
-import 'dart:convert';
-import 'package:shelf/shelf.dart';
-import 'api_methods.dart';
-import 'serializable.dart';
-
-class ApiRoute<ApiInput, ApiOutput> {
-  final ApiMethod method;
-  final String path;
-  final Future<ApiOutput> Function(Request, ApiInput?) typedHandler;
-
-  /// Optional function to parse request body into `RequestInput`
-  final ApiInput? Function(Map<String, dynamic>)? dtoParser;
-
-  final List<Middleware> middlewares;
-
-  final String? summary;
-  final String? description;
-  final Map<String, dynamic>? requestSchema;
-  final Map<String, dynamic>? responseSchema;
-
-  const ApiRoute({
-    required this.method,
-    required this.path,
-    required this.typedHandler,
-    this.dtoParser,
-    this.middlewares = const [],
-    this.summary,
-    this.description,
-    this.requestSchema,
-    this.responseSchema,
-  });
-
-  /// Shelf-compatible handler
-  Handler get handler => (Request request) async {
-        try {
-          ApiInput? dto;
-
-          if (dtoParser != null) {
-            final body = await request.readAsString();
-            dto = dtoParser?.call(jsonDecode(body));
-          }
-
-          final result = await typedHandler(request, dto);
-
-          return Response.ok(
-            _serialize(result),
-            headers: {'Content-Type': 'application/json'},
-          );
-        } catch (e) {
-          return Response.internalServerError(
-            body: _serialize(
-                {'error': 'Internal Server Error', 'message': e.toString()}),
-            headers: {'Content-Type': 'application/json'},
-          );
-        }
-      };
-}
-
-String _serialize(dynamic data) {
-  if (data is String) return data;
-  if (data is Map || data is List) return jsonEncode(data);
-  if (data is Serializable) return jsonEncode(data.toJson());
-
-  throw Exception("Unable to serialize response of type \${data.runtimeType}");
-}
-''',
-
     '$name/lib/src/controllers/auth_controller.dart': '''
 import 'package:shelf/shelf.dart';
-import 'package:$name/src/core/core.dart';
+import 'package:dartapi_core/dartapi_core.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
+
 import 'package:$name/src/dto/login_dto.dart';
 import 'package:$name/src/models/token_response.dart';
-import 'package:dartapi_auth/dartapi_auth.dart';
 
 class AuthController extends BaseController {
   final JwtService jwtService;
@@ -376,8 +308,8 @@ class AuthController extends BaseController {
     '$name/lib/src/controllers/user_controller.dart': '''
 import 'package:shelf/shelf.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:dartapi_core/dartapi_core.dart';
 
-import 'package:$name/src/core/core.dart';
 import 'package:$name/src/dto/user_dto.dart';
 
 class UserController extends BaseController {
@@ -426,9 +358,11 @@ class UserController extends BaseController {
 ''',
 
     '$name/lib/src/db/database.dart': '''
+import 'dart:developer';
+
 class Database {
   static void connect() {
-    print('🔗 Connecting to database...');
+    log('🔗 Connecting to database...');
   }
 }
 ''',
@@ -499,13 +433,14 @@ class LoginDTO {
 
     '$name/lib/src/middleware/logging.dart': '''
 import 'package:shelf/shelf.dart';
+import 'dart:developer';
 
 Middleware loggingMiddleware() {
   return (Handler innerHandler) {
     return (Request request) async {
-      print("📌 Request: \${request.method} \${request.requestedUri}");
+      log('📌 Request: \${request.method} \${request.requestedUri}');
       final response = await innerHandler(request);
-      print("📌 Response: \${request.requestedUri}, Status \${response.statusCode}");
+      log('📌 Response: \${request.requestedUri}, Status \${response.statusCode}');
       return response;
     };
   };
@@ -547,7 +482,7 @@ export 'extensions.dart';
   };
 
   for (var dir in directories) {
-    print("Directory: $dir created ✅");
+    print('Directory: $dir created ✅');
     Directory(dir).createSync(recursive: true);
   }
 

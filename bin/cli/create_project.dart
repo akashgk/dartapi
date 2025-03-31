@@ -16,6 +16,7 @@ void createProject(String name) {
     '$name/lib/src/utils',
     '$name/bin',
     '$name/test',
+    '$name/test/controllers',
   ];
 
   final files = {
@@ -171,6 +172,115 @@ class DartAPI {
   }
 }
 
+''',
+
+    '$name/test/controllers/user_controller_test.dart': '''
+import 'package:test/test.dart';
+import 'package:shelf/shelf.dart';
+import 'package:$name/src/controllers/user_controller.dart';
+import 'package:$name/src/dto/user_dto.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
+
+void main() {
+  group('UserController', () {
+    final jwtService = JwtService(
+      accessTokenSecret: 'test-access',
+      refreshTokenSecret: 'test-refresh',
+      issuer: 'test',
+      audience: 'test-users',
+    );
+    final controller = UserController(jwtService);
+
+    test('getAllUsers should return 2 users', () async {
+      final request = Request('GET', Uri.parse('http://localhost/users'));
+      final response = await controller.getAllUsers(request, null);
+
+      expect(response.length, equals(2));
+      expect(response, contains('Christy'));
+      expect(response, contains('Akash'));
+    });
+
+    test('createUser should return correct message', () async {
+      final userDto = UserDTO(name: 'Christy', age: 25, email: 'christy@test.com');
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/users'),
+        context: {'dto': userDto},
+      );
+
+      final response = await controller.createUser(request, userDto);
+      expect(response, equals('User Christy created'));
+    });
+  });
+}
+''',
+    '$name/test/controllers/auth_controller_test.dart': '''
+import 'package:test/test.dart';
+import 'package:shelf/shelf.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:$name/src/controllers/auth_controller.dart';
+import 'package:$name/src/dto/login_dto.dart';
+
+void main() {
+  group('AuthController', () {
+    final jwtService = JwtService(
+      accessTokenSecret: 'test-access',
+      refreshTokenSecret: 'test-refresh',
+      issuer: 'test',
+      audience: 'test-users',
+    );
+    final controller = AuthController(jwtService);
+
+    test('should return access and refresh token on valid login', () async {
+      final loginDto = LoginDTO(username: 'admin', password: '1234');
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/auth/login'),
+        context: {'dto': loginDto},
+      );
+
+      final response = await controller.login(request, loginDto);
+
+      expect(response.accessToken, isNotEmpty);
+      expect(response.refreshToken, isNotEmpty);
+    });
+
+    test('should throw exception on invalid login', () async {
+      final loginDto = LoginDTO(username: 'wrong', password: 'wrong');
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/auth/login'),
+        context: {'dto': loginDto},
+      );
+
+      expect(() => controller.login(request, loginDto), throwsA(isA<Exception>()));
+    });
+
+    test('should return new access token on valid refresh token', () async {
+      final accessToken = jwtService.generateAccessToken(claims: {'sub': 'u1'});
+      final refreshToken = jwtService.generateRefreshToken(accessToken: accessToken);
+
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/auth/refresh'),
+        body: 'refresh_token=\$refreshToken',
+      );
+
+      final response = await controller.refreshToken(request, null);
+      expect(response['access_token'], isNotEmpty);
+    });
+
+    test('should throw error on invalid refresh token', () async {
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/auth/refresh'),
+        body: 'refresh_token=invalid',
+      );
+
+      expect(() => controller.refreshToken(request, null), throwsA(isA<Exception>()));
+    });
+  });
+}
 ''',
 
     '$name/lib/src/core/router.dart': '''

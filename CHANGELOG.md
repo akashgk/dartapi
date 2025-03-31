@@ -1,3 +1,8 @@
+## 0.1.1
+- Add Stop and Reload Server Support.
+- Add Demo test for controllers.
+
+
 ## 0.0.9
 - Separate CORE logic to separeate DartApi_core package
 - Add some linting rules

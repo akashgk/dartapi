@@ -1,3 +1,9 @@
+## 0.1.3
+- Repo License Changes
+- Fix Code Issues
+- Add DartApi Core, Dartpi Db
+- Improve Project scaffolding and structure.
+
 ## 0.1.1
 - Add Stop and Reload Server Support.
 - Add Demo test for controllers.

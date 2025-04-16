@@ -186,8 +186,7 @@ In future versions, we will support:
 ---
 
 **📝 License**
-
-This project is open-source under the MIT License.
+This package is open-source and licensed under the **BSD-3-Clause License**.
 
 ---
 

@@ -1,9 +1,7 @@
 #!/usr/bin/env dart
 
 import 'dart:io';
-import 'cli/create_project.dart';
-import 'cli/run_server.dart';
-import 'cli/generate_controllers.dart';
+import 'package:dartapi/dartapi.dart';
 
 void printUsage() {
   print('''

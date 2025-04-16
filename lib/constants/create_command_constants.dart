@@ -1,31 +1,50 @@
-import 'dart:io';
-
-void createProject(String name) {
-  print('📦 Creating your New DartAPI project: $name');
-
-  // ✅ Create a Dart application (not a library)
-  Process.runSync('dart', ['create', name]);
-
-  final directories = [
+class CreateCommandConstants {
+  // Directories list generator
+  static List<String> directories(String name) => [
     '$name/lib/src/core',
     '$name/lib/src/controllers',
     '$name/lib/src/models',
-    '$name/lib/src/middleware',
-    '$name/lib/src/db',
     '$name/lib/src/dto',
-    '$name/lib/src/utils',
     '$name/bin',
     '$name/test',
     '$name/test/controllers',
   ];
 
-  final files = {
-    '$name/bin/main.dart': '''
-import 'package:$name/src/core/server.dart';
-import 'package:$name/src/controllers/user_controller.dart';
-import 'package:$name/src/controllers/auth_controller.dart';
+  // Files map generator
+  static Map<String, String> files(String name) => {
+    '$name/bin/main.dart': _mainDart(name),
+    '$name/lib/src/models/token_response.dart': _tokenResponseDart,
+    '$name/pubspec.yaml': _pubspecYaml(name),
+    '$name/analysis_options.yaml': _analysisOptions,
+    '$name/lib/src/core/dartapi.dart': _dartApi(name),
+    '$name/test/controllers/user_controller_test.dart': _userControllerTest(
+      name,
+    ),
+    '$name/test/controllers/auth_controller_test.dart': _authControllerTest(
+      name,
+    ),
+    '$name/lib/src/core/router.dart': _routerDart,
+    '$name/lib/src/core/core.dart': _coreExport,
+    '$name/lib/src/controllers/auth_controller.dart': _authControllerDart(name),
+    '$name/lib/src/controllers/user_controller.dart': _userControllerDart(name),
+    '$name/lib/src/controllers/product_controller.dart': _productControllerDart(
+      name
+    ),
+    '$name/lib/src/dto/user_dto.dart': _userDtoDart(name),
+    '$name/lib/src/dto/login_dto.dart': _loginDtoDart,
+    '$name/lib/src/dto/product_dto.dart': _productDtoDart,
+  };
 
-void main(List<String> args) {
+  // Static file contents
+  static String _mainDart(String projectName) => '''
+import 'package:$projectName/src/controllers/product_controller.dart';
+import 'package:$projectName/src/core/core.dart';
+import 'package:$projectName/src/controllers/user_controller.dart';
+import 'package:$projectName/src/controllers/auth_controller.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:dartapi_db/dartapi_db.dart';
+
+void main(List<String> args) async {
   int port = 8080; // Default port
 
   // Parse command-line arguments for port
@@ -36,20 +55,38 @@ void main(List<String> args) {
     }
   }
 
-  final app = DartAPI();
+  final config = const DbConfig(
+    type: DbType.postgres,
+    host: 'localhost',
+    port: 5432,
+    database: 'dartapi_test',
+    username: 'postgres',
+    password: 'yourpassword',
+  );
+
+  final DartApiDB db = await DatabaseFactory.create(config);
+  final jwtService = JwtService(
+    accessTokenSecret: 'super-secret-key',
+    refreshTokenSecret: 'super-refresh-secret',
+    issuer: 'dartapi',
+    audience: 'dartapi-users',
+  );
+
+  final app = DartAPI(db: db, jwtService: jwtService);
+
   app.addControllers([
-    UserController(app.jwtService),
-    AuthController(app.jwtService),
+    UserController(app.jwtService!),
+    AuthController(app.jwtService!),
+    ProductController(db, app.jwtService!)
   ]);
+
   app.start(port: port);
 }
-''',
-
-    '$name/lib/src/models/token_response.dart': '''
+''';
+  static const String _tokenResponseDart = '''
 import 'package:dartapi_core/dartapi_core.dart';
 
-
-class TokenResponse implements Serializable{
+class TokenResponse implements Serializable {
   final String accessToken;
   final String refreshToken;
 
@@ -65,28 +102,26 @@ class TokenResponse implements Serializable{
           'refreshToken': {'type': 'string'},
         },
       };
-      
-        @override
-        Map<String, dynamic> toJson() {
-          return {
-            'accessToken': accessToken,
-            'refreshToken': refreshToken
-          };
-        }
-      
-}
-''',
 
-    '$name/pubspec.yaml': '''
-name: $name
-description: A FastAPI-like framework for Dart.
+  @override
+  Map<String, dynamic> toJson() {
+    return {'accessToken': accessToken, 'refreshToken': refreshToken};
+  }
+}
+
+''';
+  static String _pubspecYaml(String projectName) => '''
+name: $projectName
+description: $projectName is built with DartAPI
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 0.1.0
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  dartapi_auth: ^0.0.2
-  dartapi_core: ^0.0.1
+  dartapi_auth: ^0.0.3
+  dartapi_core: ^0.0.3
+  dartapi_db: ^0.0.2
   shelf: ^1.4.0
   shelf_cors_headers: ^0.1.5
   shelf_router: ^1.1.3
@@ -94,9 +129,9 @@ dependencies:
 dev_dependencies:
   test: ^1.22.0
   lints: ^5.1.1
-''',
 
-    '$name/analysis_options.yaml': '''
+''';
+  static const String _analysisOptions = '''
 include: package:lints/recommended.yaml
 
 analyzer:
@@ -125,29 +160,29 @@ linter:
     avoid_dynamic_calls: true
     avoid_catches_without_on_clauses: true
     null_closures: true
-''',
 
-    '$name/lib/src/core/server.dart': '''
+''';
+  static String _dartApi(String projectName) => '''
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:dartapi_db/dartapi_db.dart';
+
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:dartapi_core/dartapi_core.dart';
 import 'dart:developer';
 
-import 'package:dartapi_auth/dartapi_auth.dart';
+
 import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 
-import 'package:$name/src/core/core.dart';
-import 'package:$name/src/middleware/logging.dart';
+import 'package:$projectName/src/core/core.dart';
 
 class DartAPI {
   final RouterManager _router = RouterManager();
 
-  final jwtService = JwtService(
-    accessTokenSecret: 'super-secret-key',
-    refreshTokenSecret: 'super-refresh-secret',
-    issuer: 'dartapi',
-    audience: 'dartapi-users',
-  );
+  final DartApiDB? db;
+  final JwtService? jwtService;
+
+  DartAPI({this.db, this.jwtService});
 
   Future<void> start({int port = 8080}) async {
     final handler = const Pipeline()
@@ -172,13 +207,13 @@ class DartAPI {
   }
 }
 
-''',
 
-    '$name/test/controllers/user_controller_test.dart': '''
+''';
+  static String _userControllerTest(String projectName) => '''
 import 'package:test/test.dart';
 import 'package:shelf/shelf.dart';
-import 'package:$name/src/controllers/user_controller.dart';
-import 'package:$name/src/dto/user_dto.dart';
+import 'package:$projectName/src/controllers/user_controller.dart';
+import 'package:$projectName/src/dto/user_dto.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
 
 void main() {
@@ -201,7 +236,8 @@ void main() {
     });
 
     test('createUser should return correct message', () async {
-      final userDto = UserDTO(name: 'Christy', age: 25, email: 'christy@test.com');
+      final userDto =
+          UserDTO(name: 'Christy', age: 25, email: 'christy@test.com');
       final request = Request(
         'POST',
         Uri.parse('http://localhost/users'),
@@ -213,13 +249,14 @@ void main() {
     });
   });
 }
-''',
-    '$name/test/controllers/auth_controller_test.dart': '''
+
+''';
+  static String _authControllerTest(String projectName) => '''
 import 'package:test/test.dart';
 import 'package:shelf/shelf.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
-import 'package:$name/src/controllers/auth_controller.dart';
-import 'package:$name/src/dto/login_dto.dart';
+import 'package:$projectName/src/controllers/auth_controller.dart';
+import 'package:$projectName/src/dto/login_dto.dart';
 
 void main() {
   group('AuthController', () {
@@ -253,12 +290,14 @@ void main() {
         context: {'dto': loginDto},
       );
 
-      expect(() => controller.login(request, loginDto), throwsA(isA<Exception>()));
+      expect(
+          () => controller.login(request, loginDto), throwsA(isA<Exception>()));
     });
 
     test('should return new access token on valid refresh token', () async {
       final accessToken = jwtService.generateAccessToken(claims: {'sub': 'u1'});
-      final refreshToken = jwtService.generateRefreshToken(accessToken: accessToken);
+      final refreshToken =
+          jwtService.generateRefreshToken(accessToken: accessToken);
 
       final request = Request(
         'POST',
@@ -277,17 +316,17 @@ void main() {
         body: 'refresh_token=invalid',
       );
 
-      expect(() => controller.refreshToken(request, null), throwsA(isA<Exception>()));
+      expect(() => controller.refreshToken(request, null),
+          throwsA(isA<Exception>()));
     });
   });
 }
-''',
 
-    '$name/lib/src/core/router.dart': '''
+''';
+  static const String _routerDart = '''
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:dartapi_core/dartapi_core.dart';
-
 
 class RouterManager {
   final Router _router = Router();
@@ -306,18 +345,19 @@ class RouterManager {
     }
   }
 }
-''',
-    '$name/lib/src/core/core.dart': '''
+
+''';
+  static const String _coreExport = '''
 export 'router.dart';
-export 'server.dart';
-''',
-    '$name/lib/src/controllers/auth_controller.dart': '''
+export 'dartapi.dart';
+''';
+  static String _authControllerDart(String projectName) => '''
 import 'package:shelf/shelf.dart';
 import 'package:dartapi_core/dartapi_core.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
 
-import 'package:$name/src/dto/login_dto.dart';
-import 'package:$name/src/models/token_response.dart';
+import 'package:$projectName/src/dto/login_dto.dart';
+import 'package:$projectName/src/models/token_response.dart';
 
 class AuthController extends BaseController {
   final JwtService jwtService;
@@ -375,7 +415,7 @@ class AuthController extends BaseController {
 
   /// Typed login handler
   Future<TokenResponse> login(Request request, LoginDTO? dto) async {
-    if (dto?.username == 'admin' && dto?.password == '1234') {
+    if (dto?.username == 'admin@mail.com' && dto?.password == '1234') {
       final accessToken = jwtService.generateAccessToken(claims: {
         'sub': 'user-123',
         'username': dto!.username,
@@ -414,13 +454,80 @@ class AuthController extends BaseController {
     return {'access_token': newAccessToken};
   }
 }
-''',
-    '$name/lib/src/controllers/user_controller.dart': '''
+''';
+  static String _productControllerDart(String projectName) => '''
+import 'package:$projectName/src/dto/product_dto.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:shelf/shelf.dart';
+import 'package:dartapi_core/dartapi_core.dart';
+import 'package:dartapi_db/dartapi_db.dart';
+
+class ProductController extends BaseController {
+  final DartApiDB db;
+  final JwtService jwtService;
+
+  ProductController(this.db, this.jwtService);
+
+  @override
+  List<ApiRoute> get routes => [
+        ApiRoute<void, List<ProductDto>>(
+          method: ApiMethod.get,
+          path: '/products',
+          typedHandler: getAll,
+          summary: 'Get all products',
+          description: 'Returns all products in the system',
+          middlewares: [
+            authMiddleware(jwtService),
+          ],
+          responseSchema: {
+            'type': 'array',
+            'items': ProductDto.schema,
+          },
+        ),
+        ApiRoute<ProductDto, ProductDto>(
+          method: ApiMethod.post,
+          path: '/products',
+          typedHandler: create,
+          middlewares: [
+            authMiddleware(jwtService),
+          ],
+          dtoParser: (data) {
+            return ProductDto.fromJson(data);
+          },
+          summary: 'Create a new product',
+          description: 'Adds a new product to the database',
+          requestSchema: ProductDto.schema,
+          responseSchema: ProductDto.schema,
+        ),
+      ];
+
+  Future<List<ProductDto>> getAll(Request req, void _) async {
+    final DbResult result = await db.select('products');
+    return result.rows.map(ProductDto.fromRow).toList();
+  }
+
+  Future<ProductDto> create(Request req, ProductDto? dto) async {
+    if (dto == null) {
+      throw Response.badRequest(
+        body: 'Invalid product data',
+      );
+    }
+    final result = await db.insert('products', dto.toJson());
+    if (result.rows.isEmpty) {
+      throw Response.internalServerError(
+        body: 'Failed to create product',
+      );
+    }
+    return ProductDto.fromRow(result.rows.first);
+  }
+}
+''';
+  static String _userControllerDart(String projectName) => '''
 import 'package:shelf/shelf.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:dartapi_core/dartapi_core.dart';
 
-import 'package:$name/src/dto/user_dto.dart';
+import 'package:$projectName/src/dto/user_dto.dart';
 
 class UserController extends BaseController {
   final JwtService jwtService;
@@ -465,20 +572,9 @@ class UserController extends BaseController {
     return 'User \${dto?.name} created';
   }
 }
-''',
-
-    '$name/lib/src/db/database.dart': '''
-import 'dart:developer';
-
-class Database {
-  static void connect() {
-    log('🔗 Connecting to database...');
-  }
-}
-''',
-
-    '$name/lib/src/dto/user_dto.dart': '''
-import 'package:$name/src/utils/utils.dart';
+''';
+  static String _userDtoDart(String projectName) => '''
+import 'package:dartapi_core/dartapi_core.dart';
 
 class UserDTO {
   final String name;
@@ -487,9 +583,7 @@ class UserDTO {
 
   UserDTO({required this.name, required this.age, required this.email});
 
-  factory UserDTO.fromJson(Map<String,dynamic> jsonData) {
-
-
+  factory UserDTO.fromJson(Map<String, dynamic> jsonData) {
     return UserDTO(
       name: jsonData.verifyKey<String>('name'),
       age: jsonData.verifyKey<int>('age'),
@@ -507,13 +601,68 @@ class UserDTO {
     'example': {'name': 'Christy', 'email': 'christy@example.com'}
   };
 }
+''';
 
+  static const String _productDtoDart = '''
+import 'package:dartapi_core/dartapi_core.dart';
 
+class ProductDto  implements Serializable {
+  final int? id;
+  final String name;
+  final double price;
+  final int quantity;
 
-''',
+  ProductDto({
+    this.id,
+    required this.name,
+    required this.price,
+    required this.quantity,
+  });
 
-    '$name/lib/src/dto/login_dto.dart': '''
-import 'package:$name/src/utils/utils.dart';
+  factory ProductDto.fromJson(Map<String, dynamic> json) {
+    return ProductDto(
+      name: json.verifyKey<String>('name'),
+      price: json.verifyKey<num>('price').toDouble(),
+      quantity: json.verifyKey<int>('quantity'),
+    );
+  }
+
+  factory ProductDto.fromRow(Map<String, dynamic> row) {
+    return ProductDto(
+      id: row.verifyKey<int>('id'),
+      name: row.verifyKey<String>('name'),
+      price: row.verifyKey<num>('price').toDouble(),
+      quantity: row.verifyKey<int>('quantity'),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'price': price,
+        'quantity': quantity,
+      };
+
+  static const schema = {
+    'type': 'object',
+    'properties': {
+      'id': {'type': 'integer'},
+      'name': {'type': 'string'},
+      'price': {'type': 'number'},
+      'quantity': {'type': 'integer'},
+    },
+    'required': ['name', 'price', 'quantity'],
+    'example': {
+      'id': 1,
+      'name': 'Keyboard',
+      'price': 29.99,
+      'quantity': 15,
+    }
+  };
+}
+''';
+  static const String _loginDtoDart = '''
+import 'package:dartapi_core/dartapi_core.dart';
 
 class LoginDTO {
   final String username;
@@ -522,10 +671,10 @@ class LoginDTO {
   LoginDTO({required this.username, required this.password});
 
   factory LoginDTO.fromJson(Map<String, dynamic> jsonData) {
-
-
     return LoginDTO(
-      username: jsonData.verifyKey<String>('username'),
+      username: jsonData.verifyKey<String>('username', validators: [
+        EmailValidator('Invalid email format'),
+      ]),
       password: jsonData.verifyKey<String>('password'),
     );
   }
@@ -539,71 +688,5 @@ class LoginDTO {
         'required': ['username', 'password'],
       };
 }
-''',
-
-    '$name/lib/src/middleware/logging.dart': '''
-import 'package:shelf/shelf.dart';
-import 'dart:developer';
-
-Middleware loggingMiddleware() {
-  return (Handler innerHandler) {
-    return (Request request) async {
-      log('📌 Request: \${request.method} \${request.requestedUri}');
-      final response = await innerHandler(request);
-      log('📌 Response: \${request.requestedUri}, Status \${response.statusCode}');
-      return response;
-    };
-  };
-}
-''',
-
-    '$name/lib/src/utils/validators.dart': '''
-abstract class Validators {
-  bool validate(dynamic value);
-}
-
-class EmailValidator implements Validators {
-  @override
-  bool validate(dynamic value) {
-    return (value is! String || !value.contains('@'));
-  }
-}
-''',
-
-    '$name/lib/src/utils/extensions.dart': '''
-extension MapExtensions on Map<String, dynamic> {
-  T verifyKey<T>(String key) {
-    if (!containsKey(key)) {
-      throw Exception('Invalid or missing "\$key"');
-    }
-    if (this[key] is! T) {
-      throw Exception('Invalid or missing "\$key"');
-    }
-    return this[key] as T;
-  }
-}
-
-''',
-
-    '$name/lib/src/utils/utils.dart': '''
-export 'validators.dart';
-export 'extensions.dart';
-''',
-  };
-
-  for (var dir in directories) {
-    print('Directory: $dir created ✅');
-    Directory(dir).createSync(recursive: true);
-  }
-
-  for (var file in files.entries) {
-    File(file.key).writeAsStringSync(file.value);
-  }
-  print('******************************');
-  print('🚀 DartAPI project $name created successfully! 🚀');
-  print('******************************');
-  print('📌 cd $name');
-  print('📌 dart pub get');
-  print('📌 dartapi run --port=8080');
-  print('******************************');
+''';
 }

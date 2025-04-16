@@ -1,8 +1,4 @@
-/// Support for doing something awesome.
-///
-/// More dartdocs go here.
-library;
-
-export 'src/dartapi_base.dart';
-
-// TODO: Export any libraries intended for clients of this package.
+export 'cli/create_project.dart';
+export 'cli/run_server.dart';
+export 'cli/generate_controllers.dart';
+export 'constants/create_command_constants.dart';

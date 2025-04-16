@@ -1,3 +1,7 @@
+## 0.1.4
+- Update Readme
+- Fix Controller Generator
+
 ## 0.1.3
 - Repo License Changes
 - Fix Code Issues

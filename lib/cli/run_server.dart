@@ -6,11 +6,11 @@ void runServer({int port = 8080}) async {
   Future<void> startServer() async {
     print('🚀 Starting DartAPI server on port $port...\n');
 
-    serverProcess = await Process.start(
-      'dart',
-      ['bin/main.dart', '--port', port.toString()],
-      mode: ProcessStartMode.inheritStdio,
-    );
+    serverProcess = await Process.start('dart', [
+      'bin/main.dart',
+      '--port',
+      port.toString(),
+    ], mode: ProcessStartMode.inheritStdio);
 
     print('🔧 Type `:q` to quit, `r` to reload\n');
   }

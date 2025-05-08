@@ -1,9 +1,6 @@
 name: dartapi
-description: >
-  DartAPI is a CLI-driven project generator and toolset for building typed REST APIs in Dart.
-  It provides modular packages for authentication, database access, request validation, and controller-based routing.
-  Ideal for developers who want structure, but not a full framework.
-version: 0.1.4
+description: DartAPI is a CLI-driven project generator and toolset for building typed REST APIs in Dart.
+version: 0.1.5
 repository: https://github.com/akashgk/dartapi
 homepage: https://github.com/akashgk/dartapi
 issue_tracker: https://github.com/akashgk/dartapi/issues

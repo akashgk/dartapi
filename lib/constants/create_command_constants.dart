@@ -28,7 +28,7 @@ class CreateCommandConstants {
     '$name/lib/src/controllers/auth_controller.dart': _authControllerDart(name),
     '$name/lib/src/controllers/user_controller.dart': _userControllerDart(name),
     '$name/lib/src/controllers/product_controller.dart': _productControllerDart(
-      name
+      name,
     ),
     '$name/lib/src/dto/user_dto.dart': _userDtoDart(name),
     '$name/lib/src/dto/login_dto.dart': _loginDtoDart,
@@ -119,9 +119,9 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  dartapi_auth: ^0.0.3
-  dartapi_core: ^0.0.3
-  dartapi_db: ^0.0.2
+  dartapi_auth: ^0.0.4
+  dartapi_core: ^0.0.4
+  dartapi_db: ^0.0.5
   shelf: ^1.4.0
   shelf_cors_headers: ^0.1.5
   shelf_router: ^1.1.3

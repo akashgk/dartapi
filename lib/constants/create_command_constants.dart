@@ -120,7 +120,7 @@ environment:
 
 dependencies:
   dartapi_auth: ^0.0.4
-  dartapi_core: ^0.0.4
+  dartapi_core: ^0.0.5
   dartapi_db: ^0.0.5
   shelf: ^1.4.0
   shelf_cors_headers: ^0.1.5

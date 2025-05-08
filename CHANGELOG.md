@@ -1,3 +1,6 @@
+## 0.1.6
+- upgrade Dartapi core
+
 ## 0.1.4
 - Update Readme
 - Fix Controller Generator

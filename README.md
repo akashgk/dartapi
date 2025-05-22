@@ -111,6 +111,10 @@ my_app/
 
 ---
 
+Checkout the [Medium article](https://medium.com/me/stats/post/6b12f97cb94a) for more details.
+
+---
+
 ## 📄 License
 
 BSD 3-Clause License © 2025 Akash G Krishnan  

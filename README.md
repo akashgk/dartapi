@@ -111,7 +111,7 @@ my_app/
 
 ---
 
-Checkout the [Medium article](https://medium.com/me/stats/post/6b12f97cb94a) for more details.
+Checkout the [Medium article](https://medium.com/@krishnanag1996/dartapi-build-scalable-backends-in-dart-with-a-modular-api-toolkit-6b12f97cb94a) for more details.
 
 ---
 

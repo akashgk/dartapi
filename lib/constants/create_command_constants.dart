@@ -17,19 +17,13 @@ class CreateCommandConstants {
     '$name/pubspec.yaml': _pubspecYaml(name),
     '$name/analysis_options.yaml': _analysisOptions,
     '$name/lib/src/core/dartapi.dart': _dartApi(name),
-    '$name/test/controllers/user_controller_test.dart': _userControllerTest(
-      name,
-    ),
-    '$name/test/controllers/auth_controller_test.dart': _authControllerTest(
-      name,
-    ),
+    '$name/test/controllers/user_controller_test.dart': _userControllerTest(name),
+    '$name/test/controllers/auth_controller_test.dart': _authControllerTest(name),
     '$name/lib/src/core/router.dart': _routerDart,
     '$name/lib/src/core/core.dart': _coreExport,
     '$name/lib/src/controllers/auth_controller.dart': _authControllerDart(name),
     '$name/lib/src/controllers/user_controller.dart': _userControllerDart(name),
-    '$name/lib/src/controllers/product_controller.dart': _productControllerDart(
-      name,
-    ),
+    '$name/lib/src/controllers/product_controller.dart': _productControllerDart(name),
     '$name/lib/src/dto/user_dto.dart': _userDtoDart(name),
     '$name/lib/src/dto/login_dto.dart': _loginDtoDart,
     '$name/lib/src/dto/product_dto.dart': _productDtoDart,
@@ -631,10 +625,17 @@ class ProductDto  implements Serializable {
     return ProductDto(
       id: row.verifyKey<int>('id'),
       name: row.verifyKey<String>('name'),
-      price: row.verifyKey<num>('price').toDouble(),
+      price: _parsePrice(row['price']),
       quantity: row.verifyKey<int>('quantity'),
     );
   }
+
+  static double _parsePrice(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    throw Exception('Invalid type for key "price": \${value.runtimeType}');
+  }
+
   @override
   Map<String, dynamic> toJson() => {
         if (id != null) 'id': id,

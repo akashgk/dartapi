@@ -1,3 +1,7 @@
+## 0.1.7
+- Add Documentation for Postgress for Generated Project
+- Fixed issues related to Postgres parsing.
+
 ## 0.1.6
 - upgrade Dartapi core
 

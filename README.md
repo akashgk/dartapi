@@ -40,7 +40,61 @@ Creates a full DartAPI project with:
 - DTOs and validation helpers
 - Auto schema definitions for future Swagger support
 
+
 ---
+There are no additional items we need to required to run the generated project.
+
+`Note`: that this is not mandatory. You can remove the product controller and DB related code from 
+the main.dart file if you don't need it.
+
+But if you want to use the product controller, you need to install the `postgres` DB.
+
+
+🔧 Step 1: Install PostgreSQL
+
+✅ On macOS (using Homebrew):
+
+```bash
+brew install postgresql@14
+brew services start postgresql@14
+```
+
+✅ On Ubuntu / Debian:
+
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl enable postgresql
+sudo systemctl start postgresql
+```
+
+
+✅ On Windows:
+
+
+	•	Download the PostgreSQL installer from: https://www.postgresql.org/download/windows/
+	•	Use the graphical installer to complete the setup.
+
+
+  📦 Step 2: Create a Database
+
+  Run the following commands in your terminal or psql:
+
+```sql
+psql postgres
+```
+Then in the psql prompt:
+```sql
+CREATE DATABASE dartapi_test;
+CREATE USER dartuser WITH ENCRYPTED PASSWORD 'postgres';
+GRANT ALL PRIVILEGES ON DATABASE dartapi_test TO dartuser;
+```
+
+Update your DbConfig in main.dart as per your configuration:
+
+
+---
+
 
 ### `dartapi generate controller <Name>`
 

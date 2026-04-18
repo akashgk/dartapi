@@ -1,3 +1,8 @@
+## 0.1.14
+- Bump generated `dartapi_auth` dep to `^0.0.6`
+- Bump generated `dartapi_db` dep to `^0.0.8`
+- Generated `AuthController.refreshToken` now correctly `await`s `jwtService.verifyRefreshToken()`
+
 ## 0.1.13
 - Add `dartapi generate migration <name>` — creates a numbered `.sql` file in `migrations/`
 - Add `dartapi db migrate [--dry-run]` — runs `bin/migrate.dart` inside the project to apply pending migrations

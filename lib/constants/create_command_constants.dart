@@ -117,9 +117,9 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  dartapi_auth: ^0.0.5
+  dartapi_auth: ^0.0.6
   dartapi_core: ^0.0.9
-  dartapi_db: ^0.0.7
+  dartapi_db: ^0.0.8
   shelf: ^1.4.0
   shelf_cors_headers: ^0.1.5
   shelf_router: ^1.1.3
@@ -462,7 +462,7 @@ class AuthController extends BaseController {
       throw Exception('Missing refresh token');
     }
 
-    final payload = jwtService.verifyRefreshToken(refreshToken);
+    final payload = await jwtService.verifyRefreshToken(refreshToken);
     if (payload == null) {
       throw Exception('Invalid or expired refresh token');
     }

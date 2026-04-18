@@ -115,7 +115,7 @@ environment:
 
 dependencies:
   dartapi_auth: ^0.0.5
-  dartapi_core: ^0.0.6
+  dartapi_core: ^0.0.7
   dartapi_db: ^0.0.7
   shelf: ^1.4.0
   shelf_cors_headers: ^0.1.5
@@ -479,9 +479,23 @@ class ProductController extends BaseController {
             'items': ProductDto.schema,
           },
         ),
+        /// GET /products/<id> — path parameter example
+        ApiRoute<void, ProductDto>(
+          method: ApiMethod.get,
+          path: '/products/<id>',
+          typedHandler: getById,
+          middlewares: [
+            authMiddleware(jwtService),
+          ],
+          summary: 'Get product by ID',
+          description: 'Returns a single product by its ID',
+          responseSchema: ProductDto.schema,
+        ),
+
         ApiRoute<ProductDto, ProductDto>(
           method: ApiMethod.post,
           path: '/products',
+          statusCode: 201,
           typedHandler: create,
           middlewares: [
             authMiddleware(jwtService),
@@ -501,18 +515,17 @@ class ProductController extends BaseController {
     return result.rows.map(ProductDto.fromRow).toList();
   }
 
+  Future<ProductDto> getById(Request req, void _) async {
+    final id = req.pathParam<int>('id');
+    final result = await db.select('products', where: {'id': id});
+    if (result.isEmpty) throw ApiException(404, 'Product not found');
+    return ProductDto.fromRow(result.rows.first);
+  }
+
   Future<ProductDto> create(Request req, ProductDto? dto) async {
-    if (dto == null) {
-      throw Response.badRequest(
-        body: 'Invalid product data',
-      );
-    }
+    if (dto == null) throw ApiException(400, 'Invalid product data');
     final result = await db.insert('products', dto.toJson());
-    if (result.rows.isEmpty) {
-      throw Response.internalServerError(
-        body: 'Failed to create product',
-      );
-    }
+    if (result.rows.isEmpty) throw ApiException(500, 'Failed to create product');
     return ProductDto.fromRow(result.rows.first);
   }
 }
@@ -531,14 +544,14 @@ class UserController extends BaseController {
 
   @override
   List<ApiRoute> get routes => [
-        /// ✅ GET /users
+        /// GET /users?page=1&limit=20
         ApiRoute<void, List<String>>(
           method: ApiMethod.get,
           path: '/users',
           typedHandler: getAllUsers,
           middlewares: [authMiddleware(jwtService)],
           summary: 'Get all users',
-          description: 'Returns a list of all usernames',
+          description: 'Returns a paginated list of usernames. Supports ?page and ?limit query params.',
           responseSchema: {
             'type': 'array',
             'items': {'type': 'string'},
@@ -546,10 +559,11 @@ class UserController extends BaseController {
           },
         ),
 
-        /// ✅ POST /users
+        /// POST /users — returns 201 Created
         ApiRoute<UserDTO, String>(
           method: ApiMethod.post,
           path: '/users',
+          statusCode: 201,
           typedHandler: createUser,
           dtoParser: (json) => UserDTO.fromJson(json),
           summary: 'Create a new user',
@@ -560,6 +574,9 @@ class UserController extends BaseController {
       ];
 
   Future<List<String>> getAllUsers(Request request, void _) async {
+    final page = request.queryParam<int>('page', defaultValue: 1);
+    final limit = request.queryParam<int>('limit', defaultValue: 20);
+    // Replace with real DB query using page and limit
     return ['Christy', 'Akash'];
   }
 

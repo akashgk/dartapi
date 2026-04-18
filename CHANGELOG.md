@@ -1,3 +1,8 @@
+## 0.1.11
+- Bump generated `dartapi_core` dep to `^0.0.7`
+- Generated `UserController` now demonstrates query params (`page`, `limit`) and `statusCode: 201` on POST
+- Generated `ProductController` now demonstrates path params (`GET /products/<id>`) and `statusCode: 201` on POST
+
 ## 0.1.10
 - Add step-by-step running instructions to README
 - Add Postman testing guide for all generated endpoints (auth, users, products)

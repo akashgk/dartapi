@@ -1,3 +1,7 @@
+## 0.1.9
+- Update generated project templates to use latest package versions (`dartapi_db: ^0.0.7`, `dartapi_core: ^0.0.6`, `dartapi_auth: ^0.0.5`)
+- Generated `main.dart` now includes `PoolConfig` in `DbConfig` to enable connection pooling by default
+
 ## 0.1.8
 - Fix `dartapi run --port 8080` (space-separated) now works alongside `--port=8080`
 

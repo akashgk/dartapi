@@ -56,6 +56,7 @@ void main(List<String> args) async {
     database: 'dartapi_test',
     username: 'postgres',
     password: 'yourpassword',
+    poolConfig: PoolConfig(maxConnections: 10),
   );
 
   final DartApiDB db = await DatabaseFactory.create(config);
@@ -113,9 +114,9 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  dartapi_auth: ^0.0.4
-  dartapi_core: ^0.0.5
-  dartapi_db: ^0.0.5
+  dartapi_auth: ^0.0.5
+  dartapi_core: ^0.0.6
+  dartapi_db: ^0.0.7
   shelf: ^1.4.0
   shelf_cors_headers: ^0.1.5
   shelf_router: ^1.1.3

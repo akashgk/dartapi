@@ -1,3 +1,7 @@
+## 0.1.10
+- Add step-by-step running instructions to README
+- Add Postman testing guide for all generated endpoints (auth, users, products)
+
 ## 0.1.9
 - Update generated project templates to use latest package versions (`dartapi_db: ^0.0.7`, `dartapi_core: ^0.0.6`, `dartapi_auth: ^0.0.5`)
 - Generated `main.dart` now includes `PoolConfig` in `DbConfig` to enable connection pooling by default

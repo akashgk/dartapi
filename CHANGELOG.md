@@ -1,3 +1,10 @@
+## 0.1.12
+- Bump generated `dartapi_core` dep to `^0.0.9`
+- Generated `RouterManager` now tracks all collected routes via `collectedRoutes`
+- Generated `DartAPI` class now has `enableDocs({title, version})` — call after `addControllers()` to serve `/docs`, `/redoc`, `/openapi.json`
+- Generated `main.dart` now calls `app.enableDocs(title: projectName, version: '1.0.0')`
+- Add `dartapi docs [--port=<port>] [--out=<file>]` CLI command to export OpenAPI spec from a running server
+
 ## 0.1.11
 - Bump generated `dartapi_core` dep to `^0.0.7`
 - Generated `UserController` now demonstrates query params (`page`, `limit`) and `statusCode: 201` on POST

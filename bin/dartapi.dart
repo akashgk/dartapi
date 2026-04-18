@@ -9,19 +9,21 @@ void printUsage() {
 Usage: dartapi <command>
 
 Available commands:
-  --version, -v           Show DartAPI CLI version
-  create <project_name>   Create a new DartAPI project
-  run                     Run the DartAPI server
-  generate controller <name>  Generate a new controller
+  --version, -v                   Show DartAPI CLI version
+  create <project_name>           Create a new DartAPI project
+  run [--port=<port>]             Run the DartAPI server
+  generate controller <name>      Generate a new controller
+  docs [--port=<port>] [--out=<file>]  Export OpenAPI spec (server must be running)
 
-Example:
+Examples:
   dartapi create my_project
   dartapi generate controller User
-  dartapi run
+  dartapi run --port=8080
+  dartapi docs --out openapi.json
 ''');
 }
 
-void main(List<String> args) {
+Future<void> main(List<String> args) async {
   if (args.isEmpty) {
     print('👀 DartAPI CLI');
     print('Usage: dartapi <command>');
@@ -82,6 +84,25 @@ void main(List<String> args) {
       } else {
         print('❌ Unknown generate command.');
       }
+      break;
+
+    case 'docs':
+      int docsPort = 8080;
+      String? docsOutput;
+
+      for (var i = 1; i < args.length; i++) {
+        if (args[i].startsWith('--port=')) {
+          docsPort = int.tryParse(args[i].split('=')[1]) ?? 8080;
+        } else if (args[i] == '--port' && i + 1 < args.length) {
+          docsPort = int.tryParse(args[i + 1]) ?? 8080;
+        } else if (args[i].startsWith('--out=')) {
+          docsOutput = args[i].split('=')[1];
+        } else if (args[i] == '--out' && i + 1 < args.length) {
+          docsOutput = args[i + 1];
+        }
+      }
+
+      await generateDocs(port: docsPort, output: docsOutput);
       break;
 
     default:

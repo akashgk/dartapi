@@ -72,8 +72,11 @@ void main(List<String> args) async {
   app.addControllers([
     UserController(app.jwtService!),
     AuthController(app.jwtService!),
-    ProductController(db, app.jwtService!)
+    ProductController(db, app.jwtService!),
   ]);
+
+  // Serve Swagger UI at /docs, ReDoc at /redoc, raw spec at /openapi.json.
+  app.enableDocs(title: '$projectName', version: '1.0.0');
 
   app.start(port: port);
 }
@@ -115,7 +118,7 @@ environment:
 
 dependencies:
   dartapi_auth: ^0.0.5
-  dartapi_core: ^0.0.7
+  dartapi_core: ^0.0.9
   dartapi_db: ^0.0.7
   shelf: ^1.4.0
   shelf_cors_headers: ^0.1.5
@@ -199,6 +202,24 @@ class DartAPI {
     for (var controller in controllers) {
       _router.registerController(controller);
     }
+  }
+
+  /// Enables OpenAPI documentation endpoints.
+  ///
+  /// Must be called **after** [addControllers] so all routes are collected.
+  ///
+  /// Registers:
+  /// - `GET /openapi.json` — raw OpenAPI 3.0 spec
+  /// - `GET /docs`         — Swagger UI
+  /// - `GET /redoc`        — ReDoc UI
+  void enableDocs({String title = 'API', String version = '1.0.0'}) {
+    _router.registerController(
+      DocsController(
+        apiRoutes: _router.collectedRoutes,
+        title: title,
+        version: version,
+      ),
+    );
   }
 }
 
@@ -325,11 +346,16 @@ import 'package:dartapi_core/dartapi_core.dart';
 
 class RouterManager {
   final Router _router = Router();
+  final List<ApiRoute> _collectedRoutes = [];
 
   Router get handler => _router;
 
+  /// All routes registered so far (read-only snapshot).
+  List<ApiRoute> get collectedRoutes => List.unmodifiable(_collectedRoutes);
+
   void registerController(BaseController controller) {
     for (ApiRoute route in controller.routes) {
+      _collectedRoutes.add(route);
       Handler finalHandler = route.handler;
 
       for (Middleware routeMiddleWare in route.middlewares) {

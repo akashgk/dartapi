@@ -9,15 +9,18 @@ void printUsage() {
 Usage: dartapi <command>
 
 Available commands:
-  --version, -v                   Show DartAPI CLI version
-  create <project_name>           Create a new DartAPI project
-  run [--port=<port>]             Run the DartAPI server
-  generate controller <name>      Generate a new controller
-  docs [--port=<port>] [--out=<file>]  Export OpenAPI spec (server must be running)
+  create <project_name>                        Create a new DartAPI project
+  run [--port=<port>]                          Run the DartAPI server
+  generate controller <name>                   Generate a new controller
+  generate migration <name>                    Generate a new SQL migration file
+  db migrate [--dry-run]                       Run pending SQL migrations
+  docs [--port=<port>] [--out=<file>]          Export OpenAPI spec (server must be running)
 
 Examples:
   dartapi create my_project
   dartapi generate controller User
+  dartapi generate migration create_users_table
+  dartapi db migrate
   dartapi run --port=8080
   dartapi docs --out openapi.json
 ''');
@@ -76,14 +79,25 @@ Future<void> main(List<String> args) async {
 
     case 'generate':
       if (args.length < 3) {
-        print('❌ Please specify what to generate (controller) and name.');
+        print('❌ Please specify what to generate: controller | migration');
         exit(1);
       }
       if (args[1] == 'controller') {
         generateController(args[2]);
+      } else if (args[1] == 'migration') {
+        generateMigration(args[2]);
       } else {
-        print('❌ Unknown generate command.');
+        print('❌ Unknown generate command: ${args[1]}');
       }
+      break;
+
+    case 'db':
+      if (args.length < 2 || args[1] != 'migrate') {
+        print('❌ Usage: dartapi db migrate [--dry-run]');
+        exit(1);
+      }
+      final dryRun = args.contains('--dry-run');
+      await runMigrations(dryRun: dryRun);
       break;
 
     case 'docs':

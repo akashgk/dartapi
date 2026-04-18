@@ -1,3 +1,7 @@
+## 0.1.13
+- Add `dartapi generate migration <name>` — creates a numbered `.sql` file in `migrations/`
+- Add `dartapi db migrate [--dry-run]` — runs `bin/migrate.dart` inside the project to apply pending migrations
+
 ## 0.1.12
 - Bump generated `dartapi_core` dep to `^0.0.9`
 - Generated `RouterManager` now tracks all collected routes via `collectedRoutes`

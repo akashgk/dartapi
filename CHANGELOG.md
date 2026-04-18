@@ -1,3 +1,6 @@
+## 0.1.8
+- Fix `dartapi run --port 8080` (space-separated) now works alongside `--port=8080`
+
 ## 0.1.7
 - Add Documentation for Postgress for Generated Project
 - Fixed issues related to Postgres parsing.

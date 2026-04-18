@@ -57,6 +57,16 @@ void main(List<String> args) {
             exit(1);
           }
           break;
+        } else if (args[i] == '--port' && i + 1 < args.length) {
+          port = int.tryParse(args[i + 1]) ?? -1;
+
+          if (port < 1024 || port > 65535) {
+            print(
+              '❌ Error: Invalid port number. Use a value between 1024 and 65535.',
+            );
+            exit(1);
+          }
+          break;
         }
       }
 

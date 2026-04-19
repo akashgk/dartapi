@@ -1,3 +1,6 @@
+## 0.1.26
+- Bump generated `dartapi_core` dep to `^0.0.19`, `dartapi_auth` to `^0.0.8`, `dartapi_db` to `^0.0.10`
+
 ## 0.1.25
 - Add `test/` suite: `utils_test.dart`, `create_command_constants_test.dart`, `generate_controller_test.dart`, `generate_migration_test.dart`
 - Add `dart_test.yaml` with `concurrency: 1` to prevent CWD conflicts across test files

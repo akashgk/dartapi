@@ -43,7 +43,7 @@ Future<void> main(List<String> args) async {
         print('❌ Please provide a project name.');
         exit(1);
       }
-      createProject(args[1]);
+      await createProject(args[1]);
       break;
 
     case 'run':
@@ -83,7 +83,7 @@ Future<void> main(List<String> args) async {
         exit(1);
       }
       if (args[1] == 'controller') {
-        generateController(args[2]);
+        await generateController(args[2]);
       } else if (args[1] == 'migration') {
         generateMigration(args[2]);
       } else {

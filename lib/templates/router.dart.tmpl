@@ -1,0 +1,36 @@
+import 'package:shelf/shelf.dart';
+import 'package:shelf_router/shelf_router.dart';
+import 'package:dartapi_core/dartapi_core.dart';
+
+class RouterManager {
+  final Router _router = Router();
+  final List<ApiRoute> _collectedRoutes = [];
+
+  Router get handler => _router;
+
+  /// All routes registered so far (read-only snapshot).
+  List<ApiRoute> get collectedRoutes => List.unmodifiable(_collectedRoutes);
+
+  void registerController(BaseController controller) {
+    for (ApiRoute route in controller.routes) {
+      _collectedRoutes.add(route);
+      Handler finalHandler = route.handler;
+
+      for (Middleware routeMiddleWare in route.middlewares) {
+        finalHandler = routeMiddleWare(finalHandler);
+      }
+
+      _router.add(route.method.value, route.path, finalHandler);
+    }
+
+    for (WebSocketRoute wsRoute in controller.webSocketRoutes) {
+      Handler finalHandler = wsRoute.shelfHandler;
+
+      for (Middleware mw in wsRoute.middlewares) {
+        finalHandler = mw(finalHandler);
+      }
+
+      _router.get(wsRoute.path, finalHandler);
+    }
+  }
+}

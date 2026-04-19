@@ -1,0 +1,39 @@
+import 'package:test/test.dart';
+import 'package:shelf/shelf.dart';
+import 'package:{{projectName}}/src/controllers/user_controller.dart';
+import 'package:{{projectName}}/src/dto/user_dto.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
+
+void main() {
+  group('UserController', () {
+    final jwtService = JwtService(
+      accessTokenSecret: 'test-access',
+      refreshTokenSecret: 'test-refresh',
+      issuer: 'test',
+      audience: 'test-users',
+    );
+    final controller = UserController(jwtService);
+
+    test('getAllUsers should return 2 users', () async {
+      final request = Request('GET', Uri.parse('http://localhost/users'));
+      final response = await controller.getAllUsers(request, null);
+
+      expect(response.length, equals(2));
+      expect(response, contains('Christy'));
+      expect(response, contains('Akash'));
+    });
+
+    test('createUser should return correct message', () async {
+      final userDto =
+          UserDTO(name: 'Christy', age: 25, email: 'christy@test.com');
+      final request = Request(
+        'POST',
+        Uri.parse('http://localhost/users'),
+        context: {'dto': userDto},
+      );
+
+      final response = await controller.createUser(request, userDto);
+      expect(response, equals('User Christy created'));
+    });
+  });
+}

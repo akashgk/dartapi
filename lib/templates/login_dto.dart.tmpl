@@ -1,0 +1,26 @@
+import 'package:dartapi_core/dartapi_core.dart';
+
+class LoginDTO {
+  final String username;
+  final String password;
+
+  LoginDTO({required this.username, required this.password});
+
+  factory LoginDTO.fromJson(Map<String, dynamic> jsonData) {
+    return LoginDTO(
+      username: jsonData.verifyKey<String>('username', validators: [
+        EmailValidator('Invalid email format'),
+      ]),
+      password: jsonData.verifyKey<String>('password'),
+    );
+  }
+
+  static Map<String, dynamic> get schema => {
+        'type': 'object',
+        'properties': {
+          'username': {'type': 'string'},
+          'password': {'type': 'string'},
+        },
+        'required': ['username', 'password'],
+      };
+}

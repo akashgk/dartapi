@@ -1,3 +1,14 @@
+## 0.1.21
+- Add `onStartup`/`onShutdown` lifecycle hooks to generated `DartAPI` class
+- Shutdown hooks run on SIGINT and SIGTERM (SIGTERM skipped on Windows)
+- Bump generated `dartapi_core` dep to `^0.0.16`
+
+## 0.1.20
+- Extract all scaffolded file contents into `.tmpl` files under `lib/templates/`
+- Add `TemplateEngine` for `Isolate.resolvePackageUri`-based template loading and `{{placeholder}}` substitution
+- `CreateCommandConstants.files()` is now async; `createProject` and `generateController` are now async
+- `dartapi generate controller` uses `controller.dart.tmpl` instead of an inline string
+
 ## 0.1.19
 - Bump generated `dartapi_core` dep to `^0.0.14`
 - Generated `RouterManager` now registers `controller.webSocketRoutes` via `shelf_router`

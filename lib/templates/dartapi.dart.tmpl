@@ -1,0 +1,85 @@
+import 'dart:io';
+
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:dartapi_db/dartapi_db.dart';
+
+import 'package:shelf/shelf.dart';
+import 'package:shelf/shelf_io.dart' as io;
+import 'package:dartapi_core/dartapi_core.dart';
+import 'dart:developer';
+
+import 'package:shelf_cors_headers/shelf_cors_headers.dart';
+
+import 'package:{{projectName}}/src/core/core.dart';
+
+class DartAPI {
+  final RouterManager _router = RouterManager();
+
+  final DartApiDB? db;
+  final JwtService? jwtService;
+
+  final List<Future<void> Function()> _startupHooks = [];
+  final List<Future<void> Function()> _shutdownHooks = [];
+
+  DartAPI({this.db, this.jwtService});
+
+  /// Registers a callback to run before the server starts accepting requests.
+  void onStartup(Future<void> Function() hook) => _startupHooks.add(hook);
+
+  /// Registers a callback to run when the server receives SIGINT or SIGTERM.
+  void onShutdown(Future<void> Function() hook) => _shutdownHooks.add(hook);
+
+  Future<void> start({int port = 8080}) async {
+    for (final hook in _startupHooks) {
+      await hook();
+    }
+
+    final handler = const Pipeline()
+        .addMiddleware(loggingMiddleware())
+        .addMiddleware(corsHeaders(
+          headers: {
+            ACCESS_CONTROL_ALLOW_ORIGIN: '*',
+            ACCESS_CONTROL_ALLOW_METHODS: 'GET, POST, PUT, DELETE, OPTIONS',
+            ACCESS_CONTROL_ALLOW_HEADERS: '*',
+          },
+        ))
+        .addHandler(_router.handler.call);
+
+    final server = await io.serve(handler, '0.0.0.0', port);
+    log('Server running on http://localhost:$port');
+
+    Future<void> shutdown() async {
+      for (final hook in _shutdownHooks) {
+        await hook();
+      }
+      await server.close(force: true);
+    }
+
+    ProcessSignal.sigint.watch().listen((_) async {
+      await shutdown();
+      exit(0);
+    });
+    if (!Platform.isWindows) {
+      ProcessSignal.sigterm.watch().listen((_) async {
+        await shutdown();
+        exit(0);
+      });
+    }
+  }
+
+  void addControllers(List<BaseController> controllers) {
+    for (var controller in controllers) {
+      _router.registerController(controller);
+    }
+  }
+
+  void enableDocs({String title = 'API', String version = '1.0.0'}) {
+    _router.registerController(
+      DocsController(
+        apiRoutes: _router.collectedRoutes,
+        title: title,
+        version: version,
+      ),
+    );
+  }
+}

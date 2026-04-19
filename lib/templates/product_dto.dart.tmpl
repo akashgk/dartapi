@@ -1,0 +1,63 @@
+import 'package:dartapi_core/dartapi_core.dart';
+
+class ProductDto implements Serializable {
+  final int? id;
+  final String name;
+  final double price;
+  final int quantity;
+
+  ProductDto({
+    this.id,
+    required this.name,
+    required this.price,
+    required this.quantity,
+  });
+
+  factory ProductDto.fromJson(Map<String, dynamic> json) {
+    return ProductDto(
+      name: json.verifyKey<String>('name'),
+      price: json.verifyKey<num>('price').toDouble(),
+      quantity: json.verifyKey<int>('quantity'),
+    );
+  }
+
+  factory ProductDto.fromRow(Map<String, dynamic> row) {
+    return ProductDto(
+      id: row.verifyKey<int>('id'),
+      name: row.verifyKey<String>('name'),
+      price: _parsePrice(row['price']),
+      quantity: row.verifyKey<int>('quantity'),
+    );
+  }
+
+  static double _parsePrice(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    throw Exception('Invalid type for key "price": ${value.runtimeType}');
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'price': price,
+        'quantity': quantity,
+      };
+
+  static const schema = {
+    'type': 'object',
+    'properties': {
+      'id': {'type': 'integer'},
+      'name': {'type': 'string'},
+      'price': {'type': 'number'},
+      'quantity': {'type': 'integer'},
+    },
+    'required': ['name', 'price', 'quantity'],
+    'example': {
+      'id': 1,
+      'name': 'Keyboard',
+      'price': 29.99,
+      'quantity': 15,
+    }
+  };
+}

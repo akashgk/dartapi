@@ -1,0 +1,27 @@
+import 'package:dartapi_core/dartapi_core.dart';
+
+class UserDTO {
+  final String name;
+  final int age;
+  final String email;
+
+  UserDTO({required this.name, required this.age, required this.email});
+
+  factory UserDTO.fromJson(Map<String, dynamic> jsonData) {
+    return UserDTO(
+      name: jsonData.verifyKey<String>('name'),
+      age: jsonData.verifyKey<int>('age'),
+      email: jsonData.verifyKey<String>('email'),
+    );
+  }
+
+  static const schema = {
+    'type': 'object',
+    'properties': {
+      'name': {'type': 'string'},
+      'email': {'type': 'string'}
+    },
+    'required': ['name', 'email'],
+    'example': {'name': 'Christy', 'email': 'christy@example.com'}
+  };
+}

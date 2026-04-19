@@ -1,0 +1,76 @@
+import 'package:{{projectName}}/src/dto/product_dto.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:shelf/shelf.dart';
+import 'package:dartapi_core/dartapi_core.dart';
+import 'package:dartapi_db/dartapi_db.dart';
+
+class ProductController extends BaseController {
+  final DartApiDB db;
+  final JwtService jwtService;
+
+  ProductController(this.db, this.jwtService);
+
+  @override
+  List<ApiRoute> get routes => [
+        ApiRoute<void, List<ProductDto>>(
+          method: ApiMethod.get,
+          path: '/products',
+          typedHandler: getAll,
+          summary: 'Get all products',
+          description: 'Returns all products in the system',
+          middlewares: [
+            authMiddleware(jwtService),
+          ],
+          responseSchema: {
+            'type': 'array',
+            'items': ProductDto.schema,
+          },
+        ),
+        ApiRoute<void, ProductDto>(
+          method: ApiMethod.get,
+          path: '/products/<id>',
+          typedHandler: getById,
+          middlewares: [
+            authMiddleware(jwtService),
+          ],
+          summary: 'Get product by ID',
+          description: 'Returns a single product by its ID',
+          responseSchema: ProductDto.schema,
+        ),
+        ApiRoute<ProductDto, ProductDto>(
+          method: ApiMethod.post,
+          path: '/products',
+          statusCode: 201,
+          typedHandler: create,
+          middlewares: [
+            authMiddleware(jwtService),
+          ],
+          dtoParser: (data) {
+            return ProductDto.fromJson(data);
+          },
+          summary: 'Create a new product',
+          description: 'Adds a new product to the database',
+          requestSchema: ProductDto.schema,
+          responseSchema: ProductDto.schema,
+        ),
+      ];
+
+  Future<List<ProductDto>> getAll(Request req, void _) async {
+    final DbResult result = await db.select('products');
+    return result.rows.map(ProductDto.fromRow).toList();
+  }
+
+  Future<ProductDto> getById(Request req, void _) async {
+    final id = req.pathParam<int>('id');
+    final result = await db.select('products', where: {'id': id});
+    if (result.isEmpty) throw ApiException(404, 'Product not found');
+    return ProductDto.fromRow(result.rows.first);
+  }
+
+  Future<ProductDto> create(Request req, ProductDto? dto) async {
+    if (dto == null) throw ApiException(400, 'Invalid product data');
+    final result = await db.insert('products', dto.toJson());
+    if (result.rows.isEmpty) throw ApiException(500, 'Failed to create product');
+    return ProductDto.fromRow(result.rows.first);
+  }
+}

@@ -1,0 +1,28 @@
+include: package:lints/recommended.yaml
+
+analyzer:
+  exclude:
+    - "**.g.dart"
+    - "build/**"
+    - "test/**.mocks.dart"
+
+linter:
+  rules:
+    # Formatting and style
+    always_declare_return_types: true
+    avoid_print: true
+    prefer_single_quotes: true
+    omit_local_variable_types: false
+    lines_longer_than_80_chars: false
+
+    # Code quality
+    prefer_const_constructors: true
+    prefer_final_locals: true
+    avoid_unnecessary_containers: true
+    unnecessary_this: true
+    depend_on_referenced_packages: true
+
+    # Safety
+    avoid_dynamic_calls: true
+    avoid_catches_without_on_clauses: true
+    null_closures: true

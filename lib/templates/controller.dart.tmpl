@@ -1,0 +1,37 @@
+import 'package:dartapi_core/dartapi_core.dart';
+import 'package:shelf/shelf.dart';
+
+class {{ControllerName}}Controller extends BaseController {
+  @override
+  List<ApiRoute> get routes => [
+        ApiRoute<void, bool>(
+          method: ApiMethod.get,
+          path: '/{{routePath}}',
+          typedHandler: getAll,
+          summary: '',
+          description: '< Insert description here >',
+          requestSchema: {
+            'type': 'object',
+            'properties': {
+              'name': {'type': 'string'},
+              'age': {'type': 'integer'},
+            },
+            'required': ['name', 'age'],
+            'example': {'name': 'John Doe', 'age': 30}
+          },
+          responseSchema: {
+            'type': 'object',
+            'properties': {
+              'message': {'type': 'string'},
+              'data': {'type': 'object'},
+            },
+            'required': ['message', 'data'],
+            'example': {'message': 'Success', 'data': {}}
+          },
+        )
+      ];
+
+  Future<bool> getAll(Request request, void _) async {
+    return true;
+  }
+}

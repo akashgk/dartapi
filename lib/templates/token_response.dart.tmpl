@@ -1,0 +1,24 @@
+import 'package:dartapi_core/dartapi_core.dart';
+
+class TokenResponse implements Serializable {
+  final String accessToken;
+  final String refreshToken;
+
+  const TokenResponse({
+    required this.accessToken,
+    required this.refreshToken,
+  });
+
+  static Map<String, dynamic> get schema => {
+        'type': 'object',
+        'properties': {
+          'accessToken': {'type': 'string'},
+          'refreshToken': {'type': 'string'},
+        },
+      };
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {'accessToken': accessToken, 'refreshToken': refreshToken};
+  }
+}

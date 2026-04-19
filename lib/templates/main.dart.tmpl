@@ -1,0 +1,47 @@
+import 'package:{{projectName}}/src/controllers/product_controller.dart';
+import 'package:{{projectName}}/src/core/core.dart';
+import 'package:{{projectName}}/src/controllers/user_controller.dart';
+import 'package:{{projectName}}/src/controllers/auth_controller.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:dartapi_db/dartapi_db.dart';
+
+void main(List<String> args) async {
+  int port = 8080;
+
+  for (var i = 0; i < args.length; i++) {
+    if (args[i] == '--port' && i + 1 < args.length) {
+      port = int.tryParse(args[i + 1]) ?? 8080;
+      break;
+    }
+  }
+
+  final config = const DbConfig(
+    type: DbType.postgres,
+    host: 'localhost',
+    port: 5432,
+    database: 'dartapi_test',
+    username: 'postgres',
+    password: 'yourpassword',
+    poolConfig: PoolConfig(maxConnections: 10),
+  );
+
+  final DartApiDB db = await DatabaseFactory.create(config);
+  final jwtService = JwtService(
+    accessTokenSecret: 'super-secret-key',
+    refreshTokenSecret: 'super-refresh-secret',
+    issuer: 'dartapi',
+    audience: 'dartapi-users',
+  );
+
+  final app = DartAPI(db: db, jwtService: jwtService);
+
+  app.addControllers([
+    UserController(app.jwtService!),
+    AuthController(app.jwtService!),
+    ProductController(db, app.jwtService!),
+  ]);
+
+  app.enableDocs(title: '{{projectName}}', version: '1.0.0');
+
+  app.start(port: port);
+}

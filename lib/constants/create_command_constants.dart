@@ -118,7 +118,7 @@ environment:
 
 dependencies:
   dartapi_auth: ^0.0.6
-  dartapi_core: ^0.0.10
+  dartapi_core: ^0.0.11
   dartapi_db: ^0.0.8
   shelf: ^1.4.0
   shelf_cors_headers: ^0.1.5
@@ -449,7 +449,7 @@ class AuthController extends BaseController {
           accessToken: accessToken, refreshToken: refreshToken);
     }
 
-    throw Exception('Invalid credentials');
+    throw ApiException(401, 'Invalid credentials');
   }
 
   /// Typed refresh token handler
@@ -459,12 +459,12 @@ class AuthController extends BaseController {
 
     final refreshToken = data['refresh_token'];
     if (refreshToken == null) {
-      throw Exception('Missing refresh token');
+      throw ApiException(400, 'Missing refresh token');
     }
 
     final payload = await jwtService.verifyRefreshToken(refreshToken);
     if (payload == null) {
-      throw Exception('Invalid or expired refresh token');
+      throw ApiException(401, 'Invalid or expired refresh token');
     }
 
     final newAccessToken = jwtService.generateAccessToken(claims: {

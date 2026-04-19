@@ -1,3 +1,7 @@
+## 0.1.16
+- Fix generated `AuthController`: invalid credentials now returns 401 (was 500); missing/invalid refresh token now returns 400/401
+- Bump generated `dartapi_core` dep to `^0.0.11`
+
 ## 0.1.15
 - Bump generated `dartapi_core` dep to `^0.0.10`
 

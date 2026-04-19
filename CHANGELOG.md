@@ -1,3 +1,6 @@
+## 0.1.17
+- Improve README: remove emojis, fix broken content, add MySQL example
+
 ## 0.1.16
 - Fix generated `AuthController`: invalid credentials now returns 401 (was 500); missing/invalid refresh token now returns 400/401
 - Bump generated `dartapi_core` dep to `^0.0.11`

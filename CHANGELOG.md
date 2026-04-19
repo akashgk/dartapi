@@ -1,3 +1,8 @@
+## 0.1.25
+- Add `test/` suite: `utils_test.dart`, `create_command_constants_test.dart`, `generate_controller_test.dart`, `generate_migration_test.dart`
+- Add `dart_test.yaml` with `concurrency: 1` to prevent CWD conflicts across test files
+- Tests cover: `StringCasingExtension`, template placeholder substitution, scaffolded file tree, controller generation, and migration numbering
+
 ## 0.1.24
 - Add `AppConfig` (`lib/src/config/app_config.dart`) to generated projects — typed env var config via `EnvConfig`
 - Generated `main.dart` reads DB and JWT credentials from `AppConfig` instead of hardcoded strings

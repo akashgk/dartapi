@@ -82,4 +82,9 @@ class DartAPI {
       ),
     );
   }
+
+  /// Registers `GET /health` — returns `{"status":"ok","uptime":"..."}`.
+  void enableHealthCheck() {
+    _router.registerController(HealthController());
+  }
 }

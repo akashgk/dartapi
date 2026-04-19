@@ -1,0 +1,27 @@
+import 'package:dartapi_core/dartapi_core.dart';
+
+/// Central configuration loaded from environment variables.
+///
+/// Set variables before running:
+///   export DB_HOST=localhost
+///   export JWT_SECRET=your-secret-key
+///
+/// Or pass them inline:
+///   DB_HOST=db.internal JWT_SECRET=s3cr3t dartapi run
+class AppConfig extends EnvConfig {
+  AppConfig({super.environment});
+
+  String get dbHost => env('DB_HOST', defaultValue: 'localhost');
+  int get dbPort => envInt('DB_PORT', defaultValue: 5432);
+  String get dbName => env('DB_NAME', defaultValue: 'dartapi_db');
+  String get dbUser => env('DB_USER', defaultValue: 'postgres');
+  String get dbPassword => env('DB_PASSWORD', defaultValue: 'yourpassword');
+
+  String get jwtAccessSecret =>
+      env('JWT_ACCESS_SECRET', defaultValue: 'super-secret-key');
+  String get jwtRefreshSecret =>
+      env('JWT_REFRESH_SECRET', defaultValue: 'super-refresh-secret');
+
+  int get port => envInt('PORT', defaultValue: 8080);
+  bool get debug => envBool('DEBUG', defaultValue: false);
+}

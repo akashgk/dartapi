@@ -1,3 +1,9 @@
+## 0.1.24
+- Add `AppConfig` (`lib/src/config/app_config.dart`) to generated projects — typed env var config via `EnvConfig`
+- Generated `main.dart` reads DB and JWT credentials from `AppConfig` instead of hardcoded strings
+- Generated `DartAPI` class now exposes `enableHealthCheck()` which registers `GET /health`
+- Bump generated `dartapi_core` dep to `^0.0.18`
+
 ## 0.1.23
 - Fix: generated `AuthController.refreshToken` now parses request body as JSON instead of URL-encoded form data
 

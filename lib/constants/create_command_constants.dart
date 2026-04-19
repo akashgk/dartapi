@@ -3,6 +3,7 @@ import 'package:dartapi/templates/template_engine.dart';
 class CreateCommandConstants {
   static List<String> directories(String name) => [
     '$name/lib/src/core',
+    '$name/lib/src/config',
     '$name/lib/src/controllers',
     '$name/lib/src/models',
     '$name/lib/src/dto',
@@ -15,6 +16,7 @@ class CreateCommandConstants {
     final vars = {'projectName': name};
     final entries = await Future.wait([
       _load('main.dart.tmpl', vars).then((v) => MapEntry('$name/bin/main.dart', v)),
+      _load('app_config.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/config/app_config.dart', v)),
       _load('token_response.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/models/token_response.dart', v)),
       _load('pubspec.yaml.tmpl', vars).then((v) => MapEntry('$name/pubspec.yaml', v)),
       _load('analysis_options.yaml.tmpl', vars).then((v) => MapEntry('$name/analysis_options.yaml', v)),

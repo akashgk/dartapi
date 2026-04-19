@@ -1,3 +1,7 @@
+## 0.1.19
+- Bump generated `dartapi_core` dep to `^0.0.14`
+- Generated `RouterManager` now registers `controller.webSocketRoutes` via `shelf_router`
+
 ## 0.1.18
 - Bump generated `dartapi_core` dep to `^0.0.13`
 

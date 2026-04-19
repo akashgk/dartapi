@@ -118,7 +118,7 @@ environment:
 
 dependencies:
   dartapi_auth: ^0.0.6
-  dartapi_core: ^0.0.13
+  dartapi_core: ^0.0.14
   dartapi_db: ^0.0.8
   shelf: ^1.4.0
   shelf_cors_headers: ^0.1.5
@@ -363,6 +363,16 @@ class RouterManager {
       }
 
       _router.add(route.method.value, route.path, finalHandler);
+    }
+
+    for (WebSocketRoute wsRoute in controller.webSocketRoutes) {
+      Handler finalHandler = wsRoute.shelfHandler;
+
+      for (Middleware mw in wsRoute.middlewares) {
+        finalHandler = mw(finalHandler);
+      }
+
+      _router.get(wsRoute.path, finalHandler);
     }
   }
 }

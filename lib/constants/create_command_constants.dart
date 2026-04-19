@@ -118,7 +118,7 @@ environment:
 
 dependencies:
   dartapi_auth: ^0.0.6
-  dartapi_core: ^0.0.9
+  dartapi_core: ^0.0.10
   dartapi_db: ^0.0.8
   shelf: ^1.4.0
   shelf_cors_headers: ^0.1.5

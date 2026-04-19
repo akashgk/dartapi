@@ -1,3 +1,6 @@
+## 0.1.15
+- Bump generated `dartapi_core` dep to `^0.0.10`
+
 ## 0.1.14
 - Bump generated `dartapi_auth` dep to `^0.0.6`
 - Bump generated `dartapi_db` dep to `^0.0.8`

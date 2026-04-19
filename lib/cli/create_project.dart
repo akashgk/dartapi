@@ -7,6 +7,17 @@ Future<void> createProject(String name) async {
 
   Process.runSync('dart', ['create', name]);
 
+  // dart create generates bin/<name>.dart and lib/<name>.dart — remove them
+  // so they don't conflict with our templates (bin/main.dart etc.)
+  final stale = [
+    '$name/bin/$name.dart',
+    '$name/lib/$name.dart',
+  ];
+  for (final path in stale) {
+    final f = File(path);
+    if (f.existsSync()) f.deleteSync();
+  }
+
   for (var dir in CreateCommandConstants.directories(name)) {
     Directory(dir).createSync(recursive: true);
     print('Directory: $dir created');

@@ -41,9 +41,9 @@ class UserController extends BaseController {
       ];
 
   Future<List<String>> getAllUsers(Request request, void _) async {
-    final page = request.queryParam<int>('page', defaultValue: 1);
-    final limit = request.queryParam<int>('limit', defaultValue: 20);
-    // Replace with real DB query using page and limit
+    // final page = request.queryParam<int>('page', defaultValue: 1);
+    // final limit = request.queryParam<int>('limit', defaultValue: 20);
+    // TODO: replace with a real DB query using page and limit
     return ['Christy', 'Akash'];
   }
 

@@ -71,7 +71,7 @@ class AuthController extends BaseController {
           accessToken: accessToken, refreshToken: refreshToken);
     }
 
-    throw ApiException(401, 'Invalid credentials');
+    throw const ApiException(401, 'Invalid credentials');
   }
 
   Future<Map<String, dynamic>> refreshToken(Request request, void _) async {
@@ -80,12 +80,12 @@ class AuthController extends BaseController {
 
     final refreshToken = data['refresh_token'];
     if (refreshToken == null) {
-      throw ApiException(400, 'Missing refresh token');
+      throw const ApiException(400, 'Missing refresh token');
     }
 
     final payload = await jwtService.verifyRefreshToken(refreshToken);
     if (payload == null) {
-      throw ApiException(401, 'Invalid or expired refresh token');
+      throw const ApiException(401, 'Invalid or expired refresh token');
     }
 
     final newAccessToken = jwtService.generateAccessToken(claims: {

@@ -63,14 +63,14 @@ class ProductController extends BaseController {
   Future<ProductDto> getById(Request req, void _) async {
     final id = req.pathParam<int>('id');
     final result = await db.select('products', where: {'id': id});
-    if (result.isEmpty) throw ApiException(404, 'Product not found');
+    if (result.isEmpty) throw const ApiException(404, 'Product not found');
     return ProductDto.fromRow(result.rows.first);
   }
 
   Future<ProductDto> create(Request req, ProductDto? dto) async {
-    if (dto == null) throw ApiException(400, 'Invalid product data');
+    if (dto == null) throw const ApiException(400, 'Invalid product data');
     final result = await db.insert('products', dto.toJson());
-    if (result.rows.isEmpty) throw ApiException(500, 'Failed to create product');
+    if (result.rows.isEmpty) throw const ApiException(500, 'Failed to create product');
     return ProductDto.fromRow(result.rows.first);
   }
 }

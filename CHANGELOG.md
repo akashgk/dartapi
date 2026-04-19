@@ -1,3 +1,6 @@
+## 0.1.18
+- Bump generated `dartapi_core` dep to `^0.0.13`
+
 ## 0.1.17
 - Improve README: remove emojis, fix broken content, add MySQL example
 

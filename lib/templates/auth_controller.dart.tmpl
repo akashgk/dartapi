@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:shelf/shelf.dart';
 import 'package:dartapi_core/dartapi_core.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
@@ -76,9 +78,9 @@ class AuthController extends BaseController {
 
   Future<Map<String, dynamic>> refreshToken(Request request, void _) async {
     final body = await request.readAsString();
-    final data = Uri.splitQueryString(body);
+    final data = jsonDecode(body) as Map<String, dynamic>;
 
-    final refreshToken = data['refresh_token'];
+    final refreshToken = data['refresh_token'] as String?;
     if (refreshToken == null) {
       throw const ApiException(400, 'Missing refresh token');
     }

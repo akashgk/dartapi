@@ -17,7 +17,7 @@ void main() {
     final controller = AuthController(jwtService);
 
     test('should return access and refresh token on valid login', () async {
-      final loginDto = LoginDTO(username: 'admin', password: '1234');
+      final loginDto = LoginDTO(username: 'admin@mail.com', password: '1234');
       final request = Request(
         'POST',
         Uri.parse('http://localhost/auth/login'),

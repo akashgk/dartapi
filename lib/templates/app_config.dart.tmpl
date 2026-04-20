@@ -1,27 +1,95 @@
 import 'package:dartapi_core/dartapi_core.dart';
 
-/// Central configuration loaded from environment variables.
+/// The active runtime environment.
+enum AppEnvironment { dev, staging, uat, production }
+
+/// Central typed configuration loaded from environment variables.
 ///
-/// Set variables before running:
-///   export DB_HOST=localhost
-///   export JWT_SECRET=your-secret-key
+/// In `main.dart`, a [DotEnv] instance loads `.env` and `.env.<APP_ENV>`
+/// before this class is instantiated. All values fall back to safe defaults
+/// so the server starts in development without any configuration.
 ///
-/// Or pass them inline:
-///   DB_HOST=db.internal JWT_SECRET=s3cr3t dartapi run
+/// Priority (highest → lowest):
+///   real process env vars → .env.<APP_ENV> → .env → built-in defaults
+///
+/// Usage:
+/// ```dart
+/// final config = AppConfig(environment: dotenv.toMap());
+/// print(config.isDev);       // true when APP_ENV=dev
+/// print(config.dbHost);      // reads DB_HOST
+/// ```
 class AppConfig extends EnvConfig {
   AppConfig({super.environment});
 
-  String get dbHost => env('DB_HOST', defaultValue: 'localhost');
-  int get dbPort => envInt('DB_PORT', defaultValue: 5432);
-  String get dbName => env('DB_NAME', defaultValue: 'dartapi_db');
-  String get dbUser => env('DB_USER', defaultValue: 'postgres');
-  String get dbPassword => env('DB_PASSWORD', defaultValue: 'yourpassword');
+  // ── Environment ──────────────────────────────────────────────────────────
 
-  String get jwtAccessSecret =>
-      env('JWT_ACCESS_SECRET', defaultValue: 'super-secret-key');
-  String get jwtRefreshSecret =>
-      env('JWT_REFRESH_SECRET', defaultValue: 'super-refresh-secret');
+  /// The active [AppEnvironment] parsed from [APP_ENV].
+  AppEnvironment get appEnv => switch (
+        env('APP_ENV', defaultValue: 'dev').toLowerCase()
+      ) {
+        'staging' => AppEnvironment.staging,
+        'uat' => AppEnvironment.uat,
+        'production' || 'prod' => AppEnvironment.production,
+        _ => AppEnvironment.dev,
+      };
+
+  bool get isDev => appEnv == AppEnvironment.dev;
+  bool get isStaging => appEnv == AppEnvironment.staging;
+  bool get isUat => appEnv == AppEnvironment.uat;
+  bool get isProduction => appEnv == AppEnvironment.production;
+
+  // ── Server ───────────────────────────────────────────────────────────────
 
   int get port => envInt('PORT', defaultValue: 8080);
-  bool get debug => envBool('DEBUG', defaultValue: false);
+
+  /// Debug mode — defaults to true in dev, false everywhere else.
+  bool get debug => envBool('DEBUG', defaultValue: isDev);
+
+  /// Log level — defaults to 'debug' in dev, 'info' in staging/UAT, 'warn' in production.
+  String get logLevel => env(
+        'LOG_LEVEL',
+        defaultValue: switch (appEnv) {
+          AppEnvironment.dev => 'debug',
+          AppEnvironment.staging || AppEnvironment.uat => 'info',
+          AppEnvironment.production => 'warn',
+        },
+      );
+
+  // ── Database ─────────────────────────────────────────────────────────────
+
+  String get dbHost => env('DB_HOST', defaultValue: 'localhost');
+  int get dbPort => envInt('DB_PORT', defaultValue: 5432);
+  String get dbName =>
+      env('DB_NAME', defaultValue: '{{projectName}}_${appEnv.name}');
+  String get dbUser => env('DB_USER', defaultValue: 'postgres');
+  String get dbPassword => env('DB_PASSWORD', defaultValue: 'yourpassword');
+  int get dbPoolSize => envInt('DB_POOL_SIZE', defaultValue: isProduction ? 20 : 5);
+
+  // ── JWT ───────────────────────────────────────────────────────────────────
+
+  String get jwtAccessSecret =>
+      env('JWT_ACCESS_SECRET', defaultValue: 'dev-access-secret-not-for-production');
+  String get jwtRefreshSecret =>
+      env('JWT_REFRESH_SECRET', defaultValue: 'dev-refresh-secret-not-for-production');
+
+  /// Access token lifetime — shorter in production for tighter security.
+  Duration get jwtAccessExpiry => Duration(
+        minutes: envInt(
+          'JWT_ACCESS_EXPIRY_MINUTES',
+          defaultValue: isProduction ? 15 : 60,
+        ),
+      );
+
+  /// Refresh token lifetime.
+  Duration get jwtRefreshExpiry => Duration(
+        days: envInt(
+          'JWT_REFRESH_EXPIRY_DAYS',
+          defaultValue: isProduction ? 7 : 30,
+        ),
+      );
+
+  // ── CORS ──────────────────────────────────────────────────────────────────
+
+  /// Allowed CORS origin — defaults to '*' in dev, locked to domain in production.
+  String get corsOrigin => env('CORS_ORIGIN', defaultValue: isDev ? '*' : '');
 }

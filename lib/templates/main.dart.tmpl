@@ -1,20 +1,42 @@
-import 'package:{{projectName}}/src/controllers/product_controller.dart';
-import 'package:{{projectName}}/src/core/core.dart';
-import 'package:{{projectName}}/src/controllers/user_controller.dart';
-import 'package:{{projectName}}/src/controllers/auth_controller.dart';
+import 'dart:io';
+
+import 'package:dotenv/dotenv.dart';
 import 'package:{{projectName}}/src/config/app_config.dart';
+import 'package:{{projectName}}/src/controllers/auth_controller.dart';
+import 'package:{{projectName}}/src/controllers/product_controller.dart';
+import 'package:{{projectName}}/src/controllers/user_controller.dart';
+import 'package:{{projectName}}/src/core/core.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:dartapi_db/dartapi_db.dart';
 
 void main(List<String> args) async {
-  final config = AppConfig();
+  // Determine the active environment (APP_ENV process var takes priority).
+  final appEnv = Platform.environment['APP_ENV'] ?? 'dev';
 
+  // Load base .env then environment-specific overrides.
+  // Platform environment always takes highest precedence.
+  final dotenv = DotEnv(includePlatformEnvironment: true)
+    ..load(['.env', '.env.$appEnv']);
+
+  final config = AppConfig(environment: Map<String, String>.from(dotenv));
+
+  // Allow --port flag to override the configured port at startup.
   int port = config.port;
   for (var i = 0; i < args.length; i++) {
     if (args[i] == '--port' && i + 1 < args.length) {
       port = int.tryParse(args[i + 1]) ?? port;
       break;
+    } else if (args[i].startsWith('--port=')) {
+      port = int.tryParse(args[i].split('=')[1]) ?? port;
+      break;
     }
+  }
+
+  if (config.debug) {
+    print('[{{projectName}}] environment : $appEnv');
+    print('[{{projectName}}] port        : $port');
+    print('[{{projectName}}] db          : ${config.dbHost}:${config.dbPort}/${config.dbName}');
+    print('[{{projectName}}] log level   : ${config.logLevel}');
   }
 
   final dbConfig = DbConfig(
@@ -24,15 +46,16 @@ void main(List<String> args) async {
     database: config.dbName,
     username: config.dbUser,
     password: config.dbPassword,
-    poolConfig: const PoolConfig(maxConnections: 10),
+    poolConfig: PoolConfig(maxConnections: config.dbPoolSize),
   );
 
   final DartApiDB db = await DatabaseFactory.create(dbConfig);
+
   final jwtService = JwtService(
     accessTokenSecret: config.jwtAccessSecret,
     refreshTokenSecret: config.jwtRefreshSecret,
-    issuer: 'dartapi',
-    audience: 'dartapi-users',
+    issuer: '{{projectName}}',
+    audience: '{{projectName}}-users',
   );
 
   final app = DartAPI(db: db, jwtService: jwtService);

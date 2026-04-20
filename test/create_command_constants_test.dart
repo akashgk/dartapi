@@ -37,6 +37,7 @@ void main() {
         'myapp/bin/main.dart',
         'myapp/pubspec.yaml',
         'myapp/analysis_options.yaml',
+        'myapp/.gitignore',
         'myapp/lib/src/core/dartapi.dart',
         'myapp/lib/src/core/router.dart',
         'myapp/lib/src/core/core.dart',
@@ -50,6 +51,11 @@ void main() {
         'myapp/lib/src/models/token_response.dart',
         'myapp/test/controllers/user_controller_test.dart',
         'myapp/test/controllers/auth_controller_test.dart',
+        'myapp/.env.example',
+        'myapp/.env.dev',
+        'myapp/.env.staging',
+        'myapp/.env.uat',
+        'myapp/.env.production',
       ]));
     });
 
@@ -112,6 +118,50 @@ void main() {
           reason: '${entry.key} still has an unsubstituted {{projectName}} placeholder',
         );
       }
+    });
+
+    test('pubspec.yaml includes dotenv dependency', () {
+      expect(fileMap['myapp/pubspec.yaml'], contains('dotenv'));
+    });
+
+    test('.env.example contains APP_ENV variable', () {
+      expect(fileMap['myapp/.env.example'], contains('APP_ENV'));
+    });
+
+    test('.env.dev sets APP_ENV to dev', () {
+      expect(fileMap['myapp/.env.dev'], contains('APP_ENV=dev'));
+    });
+
+    test('.env.production sets DEBUG to false', () {
+      expect(fileMap['myapp/.env.production'], contains('DEBUG=false'));
+    });
+
+    test('.gitignore excludes .env files', () {
+      expect(fileMap['myapp/.gitignore'], contains('.env'));
+    });
+
+    test('.gitignore does not have .env.example as an ignore pattern', () {
+      final gitignore = fileMap['myapp/.gitignore']!;
+      // .env.example may appear in comments but must not be a bare ignore line.
+      final ignoreLines = gitignore
+          .split('\n')
+          .where((l) => !l.trimLeft().startsWith('#'))
+          .toList();
+      expect(ignoreLines, isNot(contains('.env.example')));
+    });
+
+    test('app_config.dart contains AppEnvironment enum', () {
+      expect(fileMap['myapp/lib/src/config/app_config.dart'],
+          contains('AppEnvironment'));
+    });
+
+    test('main.dart imports dotenv', () {
+      expect(fileMap['myapp/bin/main.dart'], contains('dotenv'));
+    });
+
+    test('main.dart loads environment-specific .env file', () {
+      final main = fileMap['myapp/bin/main.dart']!;
+      expect(main, contains('.env.\$appEnv'));
     });
 
     test('no file still contains {{ControllerName}} placeholder', () {

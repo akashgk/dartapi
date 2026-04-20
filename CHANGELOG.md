@@ -1,3 +1,12 @@
+## 0.1.27
+- Fix: generated `AuthController` test used `username: 'admin'` but controller checks `admin@mail.com` — corrected to match
+- Add multi-environment support to generated projects: `.env.dev`, `.env.staging`, `.env.uat`, `.env.production` each scaffolded with appropriate defaults
+- Add `.env.example` (committed) documenting all available environment variables
+- Add `dotenv: ^4.2.1` to generated `pubspec.yaml` — `.env` and `.env.<APP_ENV>` are loaded at startup
+- Generated `main.dart` now loads `DotEnv` before `AppConfig`, prints startup info in debug mode, and supports `--port=N` alongside `--port N`
+- Generated `AppConfig` now has `AppEnvironment` enum, `isDev`/`isStaging`/`isUat`/`isProduction` helpers, per-env smart defaults for `debug`, `logLevel`, `jwtAccessExpiry`, `dbPoolSize`, and `corsOrigin`
+- Add `.gitignore` to generated projects (excludes `.env.*` files, keeps `.env.example`)
+
 ## 0.1.26
 - Bump generated `dartapi_core` dep to `^0.0.19`, `dartapi_auth` to `^0.0.8`, `dartapi_db` to `^0.0.10`
 

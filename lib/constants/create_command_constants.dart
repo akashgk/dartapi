@@ -17,6 +17,7 @@ class CreateCommandConstants {
     final entries = await Future.wait([
       _load('main.dart.tmpl', vars).then((v) => MapEntry('$name/bin/main.dart', v)),
       _load('app_config.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/config/app_config.dart', v)),
+      _load('env_loader.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/config/env_loader.dart', v)),
       _load('token_response.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/models/token_response.dart', v)),
       _load('pubspec.yaml.tmpl', vars).then((v) => MapEntry('$name/pubspec.yaml', v)),
       _load('analysis_options.yaml.tmpl', vars).then((v) => MapEntry('$name/analysis_options.yaml', v)),

@@ -120,8 +120,18 @@ void main() {
       }
     });
 
-    test('pubspec.yaml includes dotenv dependency', () {
-      expect(fileMap['myapp/pubspec.yaml'], contains('dotenv'));
+    test('pubspec.yaml does not include dotenv (built-in loader used)', () {
+      expect(fileMap['myapp/pubspec.yaml'], isNot(contains('dotenv')));
+    });
+
+    test('env_loader.dart is generated', () {
+      expect(fileMap.keys, contains('myapp/lib/src/config/env_loader.dart'));
+    });
+
+    test('env_loader.dart exports loadEnvFile and mergeEnv', () {
+      final loader = fileMap['myapp/lib/src/config/env_loader.dart']!;
+      expect(loader, contains('loadEnvFile'));
+      expect(loader, contains('mergeEnv'));
     });
 
     test('.env.example contains APP_ENV variable', () {
@@ -155,8 +165,8 @@ void main() {
           contains('AppEnvironment'));
     });
 
-    test('main.dart imports dotenv', () {
-      expect(fileMap['myapp/bin/main.dart'], contains('dotenv'));
+    test('main.dart imports env_loader', () {
+      expect(fileMap['myapp/bin/main.dart'], contains('env_loader'));
     });
 
     test('main.dart loads environment-specific .env file', () {

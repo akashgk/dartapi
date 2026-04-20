@@ -1,3 +1,7 @@
+## 0.1.29
+- Fix: replace `dotenv` external dependency with a built-in `env_loader.dart` (no version-resolution issues, zero extra deps)
+- Generated `lib/src/config/env_loader.dart` provides `loadEnvFile(path)` and `mergeEnv(sources)` — handles comments, inline comments, and quoted values
+
 ## 0.1.28
 - Fix: `dartapi create` now runs `dart pub get` automatically after scaffolding — packages are resolved immediately and IDEs show no missing-import errors
 

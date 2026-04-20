@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:dotenv/dotenv.dart';
 import 'package:{{projectName}}/src/config/app_config.dart';
+import 'package:{{projectName}}/src/config/env_loader.dart';
 import 'package:{{projectName}}/src/controllers/auth_controller.dart';
 import 'package:{{projectName}}/src/controllers/product_controller.dart';
 import 'package:{{projectName}}/src/controllers/user_controller.dart';
@@ -10,17 +10,18 @@ import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:dartapi_db/dartapi_db.dart';
 
 void main(List<String> args) async {
-  // Determine the active environment (APP_ENV process var takes priority).
+  // Determine the active environment (process var takes priority over .env).
   final appEnv = Platform.environment['APP_ENV'] ?? 'dev';
 
-  // Load base .env then environment-specific overrides.
-  // Platform environment always takes highest precedence.
-  final dotenv = DotEnv(includePlatformEnvironment: true)
-    ..load(['.env', '.env.$appEnv']);
+  // Load .env then .env.<appEnv>; Platform.environment always wins.
+  final env = mergeEnv([
+    loadEnvFile('.env'),
+    loadEnvFile('.env.$appEnv'),
+  ]);
 
-  final config = AppConfig(environment: Map<String, String>.from(dotenv));
+  final config = AppConfig(environment: env);
 
-  // Allow --port flag to override the configured port at startup.
+  // Allow --port / --port=N to override the configured port at startup.
   int port = config.port;
   for (var i = 0; i < args.length; i++) {
     if (args[i] == '--port' && i + 1 < args.length) {

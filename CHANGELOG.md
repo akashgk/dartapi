@@ -1,3 +1,6 @@
+## 0.1.28
+- Fix: `dartapi create` now runs `dart pub get` automatically after scaffolding — packages are resolved immediately and IDEs show no missing-import errors
+
 ## 0.1.27
 - Fix: generated `AuthController` test used `username: 'admin'` but controller checks `admin@mail.com` — corrected to match
 - Add multi-environment support to generated projects: `.env.dev`, `.env.staging`, `.env.uat`, `.env.production` each scaffolded with appropriate defaults

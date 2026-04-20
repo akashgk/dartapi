@@ -28,11 +28,20 @@ Future<void> createProject(String name) async {
     File(file.key).writeAsStringSync(file.value);
   }
 
+  print('Running dart pub get...');
+  final pubGet = await Process.run(
+    'dart',
+    ['pub', 'get'],
+    workingDirectory: name,
+  );
+  if (pubGet.exitCode != 0) {
+    print('Warning: dart pub get failed:\n${pubGet.stderr}');
+  }
+
   print('******************************');
   print('DartAPI project $name created successfully!');
   print('******************************');
   print('  cd $name');
-  print('  dart pub get');
   print('  dartapi run --port=8080');
   print('******************************');
 }

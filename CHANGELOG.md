@@ -1,3 +1,18 @@
+## 0.1.32
+- Move generated env files from project root into `env/` subdirectory — `env/.env.dev`, `env/.env.staging`, `env/.env.uat`, `env/.env.production`, `env/.env.example`
+- Update generated `main.dart` to load from `env/.env` and `env/.env.<APP_ENV>`
+- Update generated `.gitignore` to exclude `env/.env*` (keeps `env/.env.example` committed)
+- Add `dartapi run --watch` — watches `lib/` and `bin/` for `.dart` file changes and auto-restarts the server (500 ms debounce)
+
+## 0.1.31
+- `dartapi generate controller` now prints wiring instructions — shows the import and `app.addControllers([...])` call to add to `bin/main.dart`
+- Bump generated `dartapi_core` dep to `^0.0.20` (fixes bool/num response serialization)
+
+## 0.1.30
+- Add generated `README.md` to scaffolded projects — covers project structure, per-environment run commands, environment variable reference, API endpoint table, migration and test commands
+- Fix CORS: generated `DartAPI` class now accepts `corsOrigin` and uses `config.corsOrigin` instead of hardcoded `'*'`
+- Add `AppConfig.validateForProduction()` — warns at startup when production runs with development JWT secrets
+
 ## 0.1.29
 - Fix: replace `dotenv` external dependency with a built-in `env_loader.dart` (no version-resolution issues, zero extra deps)
 - Generated `lib/src/config/env_loader.dart` provides `loadEnvFile(path)` and `mergeEnv(sources)` — handles comments, inline comments, and quoted values

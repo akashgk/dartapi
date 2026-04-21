@@ -51,11 +51,11 @@ void main() {
         'myapp/lib/src/models/token_response.dart',
         'myapp/test/controllers/user_controller_test.dart',
         'myapp/test/controllers/auth_controller_test.dart',
-        'myapp/.env.example',
-        'myapp/.env.dev',
-        'myapp/.env.staging',
-        'myapp/.env.uat',
-        'myapp/.env.production',
+        'myapp/env/.env.example',
+        'myapp/env/.env.dev',
+        'myapp/env/.env.staging',
+        'myapp/env/.env.uat',
+        'myapp/env/.env.production',
       ]));
     });
 
@@ -134,30 +134,29 @@ void main() {
       expect(loader, contains('mergeEnv'));
     });
 
-    test('.env.example contains APP_ENV variable', () {
-      expect(fileMap['myapp/.env.example'], contains('APP_ENV'));
+    test('env/.env.example contains APP_ENV variable', () {
+      expect(fileMap['myapp/env/.env.example'], contains('APP_ENV'));
     });
 
-    test('.env.dev sets APP_ENV to dev', () {
-      expect(fileMap['myapp/.env.dev'], contains('APP_ENV=dev'));
+    test('env/.env.dev sets APP_ENV to dev', () {
+      expect(fileMap['myapp/env/.env.dev'], contains('APP_ENV=dev'));
     });
 
-    test('.env.production sets DEBUG to false', () {
-      expect(fileMap['myapp/.env.production'], contains('DEBUG=false'));
+    test('env/.env.production sets DEBUG to false', () {
+      expect(fileMap['myapp/env/.env.production'], contains('DEBUG=false'));
     });
 
-    test('.gitignore excludes .env files', () {
-      expect(fileMap['myapp/.gitignore'], contains('.env'));
+    test('.gitignore excludes env/.env files', () {
+      expect(fileMap['myapp/.gitignore'], contains('env/.env'));
     });
 
-    test('.gitignore does not have .env.example as an ignore pattern', () {
+    test('.gitignore does not have env/.env.example as an ignore line', () {
       final gitignore = fileMap['myapp/.gitignore']!;
-      // .env.example may appear in comments but must not be a bare ignore line.
       final ignoreLines = gitignore
           .split('\n')
           .where((l) => !l.trimLeft().startsWith('#'))
           .toList();
-      expect(ignoreLines, isNot(contains('.env.example')));
+      expect(ignoreLines, isNot(contains('env/.env.example')));
     });
 
     test('app_config.dart contains AppEnvironment enum', () {
@@ -169,9 +168,9 @@ void main() {
       expect(fileMap['myapp/bin/main.dart'], contains('env_loader'));
     });
 
-    test('main.dart loads environment-specific .env file', () {
+    test('main.dart loads environment-specific env file from env/ folder', () {
       final main = fileMap['myapp/bin/main.dart']!;
-      expect(main, contains('.env.\$appEnv'));
+      expect(main, contains('env/.env.\$appEnv'));
     });
 
     test('no file still contains {{ControllerName}} placeholder', () {
@@ -182,6 +181,48 @@ void main() {
           reason: '${entry.key} still has an unsubstituted {{ControllerName}} placeholder',
         );
       }
+    });
+
+    test('README.md is generated', () {
+      expect(fileMap.keys, contains('myapp/README.md'));
+    });
+
+    test('README.md mentions all environments', () {
+      final readme = fileMap['myapp/README.md']!;
+      expect(readme, contains('APP_ENV=dev'));
+      expect(readme, contains('APP_ENV=staging'));
+      expect(readme, contains('APP_ENV=uat'));
+      expect(readme, contains('APP_ENV=production'));
+    });
+
+    test('README.md has no unsubstituted {{projectName}} placeholder', () {
+      expect(
+        fileMap['myapp/README.md'],
+        isNot(contains('{{projectName}}')),
+        reason: 'README.md still has an unsubstituted {{projectName}} placeholder',
+      );
+    });
+
+    test('dartapi.dart uses corsOrigin field not hardcoded * in middleware', () {
+      final dartapi = fileMap['myapp/lib/src/core/dartapi.dart']!;
+      expect(dartapi, contains('corsOrigin'));
+      // The CORS header value must use the field, not a literal '*'.
+      expect(dartapi, isNot(contains('ACCESS_CONTROL_ALLOW_ORIGIN: \'*\'')));
+    });
+
+    test('app_config.dart contains validateForProduction', () {
+      expect(
+        fileMap['myapp/lib/src/config/app_config.dart'],
+        contains('validateForProduction'),
+      );
+    });
+
+    test('main.dart calls validateForProduction', () {
+      expect(fileMap['myapp/bin/main.dart'], contains('validateForProduction'));
+    });
+
+    test('main.dart passes corsOrigin to DartAPI', () {
+      expect(fileMap['myapp/bin/main.dart'], contains('corsOrigin: config.corsOrigin'));
     });
   });
 }

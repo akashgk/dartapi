@@ -92,4 +92,19 @@ class AppConfig extends EnvConfig {
 
   /// Allowed CORS origin — defaults to '*' in dev, locked to domain in production.
   String get corsOrigin => env('CORS_ORIGIN', defaultValue: isDev ? '*' : '');
+
+  /// Prints a warning when production is running with development-placeholder secrets.
+  void validateForProduction() {
+    if (!isProduction) return;
+    const devMarkers = ['dev-access-secret', 'dev-refresh-secret'];
+    if (devMarkers.any(
+      (m) => jwtAccessSecret.contains(m) || jwtRefreshSecret.contains(m),
+    )) {
+      // ignore: avoid_print
+      print(
+        '[WARNING] Production is running with development JWT secrets. '
+        'Set JWT_ACCESS_SECRET and JWT_REFRESH_SECRET to strong random values.',
+      );
+    }
+  }
 }

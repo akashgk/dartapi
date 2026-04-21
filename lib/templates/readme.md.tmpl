@@ -1,0 +1,167 @@
+# {{projectName}}
+
+A REST API built with [DartAPI](https://pub.dev/packages/dartapi_core).
+
+## Project Structure
+
+```
+bin/main.dart        # Server entrypoint
+lib/src/
+  config/            # AppConfig, EnvConfig, env_loader
+  controllers/       # AuthController, UserController, ProductController
+  core/              # DartAPI server class, RouterManager
+  dto/               # Request/response DTOs
+  models/            # Domain models
+env/                 # Environment files
+  .env.example       # Committed — documents all available variables
+  .env.dev           # Local dev overrides (gitignored)
+  .env.staging       # Staging overrides (gitignored)
+  .env.uat           # UAT overrides (gitignored)
+  .env.production    # Production overrides (gitignored)
+migrations/          # Numbered .sql migration files
+test/                # Controller tests
+```
+
+## Environment Setup
+
+The server loads `.env` (base values) then `.env.<APP_ENV>` (environment overrides).
+`Platform.environment` variables always take priority over file values.
+
+| Environment | File | `APP_ENV` value |
+|---|---|---|
+| Development | `env/.env.dev` | `dev` |
+| Staging | `env/.env.staging` | `staging` |
+| UAT | `env/.env.uat` | `uat` |
+| Production | `env/.env.production` | `production` |
+
+Copy `.env.example` to get started:
+
+```bash
+cp env/.env.example env/.env.dev
+# edit env/.env.dev with your local database credentials
+```
+
+**Never commit `env/.env.*` files.** Only `env/.env.example` is tracked by git.
+
+## Running the Server
+
+### Development (default)
+
+```bash
+dart run bin/main.dart
+```
+
+With an explicit environment or custom port:
+
+```bash
+APP_ENV=dev dart run bin/main.dart --port=3000
+```
+
+### Staging
+
+```bash
+APP_ENV=staging dart run bin/main.dart
+```
+
+### UAT
+
+```bash
+APP_ENV=uat dart run bin/main.dart
+```
+
+### Production
+
+Set real secrets via environment variables (do **not** rely on `.env.production` for secrets in CI/CD):
+
+```bash
+export APP_ENV=production
+export DB_HOST=your-db-host
+export DB_NAME={{projectName}}_production
+export DB_USER=your-db-user
+export DB_PASSWORD=your-db-password
+export JWT_ACCESS_SECRET=$(openssl rand -hex 32)
+export JWT_REFRESH_SECRET=$(openssl rand -hex 32)
+dart run bin/main.dart
+```
+
+Or compile to a self-contained native binary:
+
+```bash
+dart compile exe bin/main.dart -o {{projectName}}
+APP_ENV=production ./{{projectName}}
+```
+
+## Environment Variables Reference
+
+| Variable | Dev default | Description |
+|---|---|---|
+| `APP_ENV` | `dev` | Active environment: `dev` / `staging` / `uat` / `production` |
+| `PORT` | `8080` | HTTP server port |
+| `DEBUG` | `true` | Print startup info (`false` in production) |
+| `LOG_LEVEL` | `debug` | `debug` / `info` / `warn` / `error` |
+| `DB_HOST` | `localhost` | PostgreSQL host |
+| `DB_PORT` | `5432` | PostgreSQL port |
+| `DB_NAME` | `{{projectName}}_dev` | Database name |
+| `DB_USER` | `postgres` | Database user |
+| `DB_PASSWORD` | `yourpassword` | Database password |
+| `DB_POOL_SIZE` | `5` (dev), `20` (prod) | Max connection pool size |
+| `JWT_ACCESS_SECRET` | *(dev placeholder)* | **Must be changed in production** |
+| `JWT_REFRESH_SECRET` | *(dev placeholder)* | **Must be changed in production** |
+| `JWT_ACCESS_EXPIRY_MINUTES` | `60` (dev), `15` (prod) | Access token lifetime |
+| `JWT_REFRESH_EXPIRY_DAYS` | `30` (dev), `7` (prod) | Refresh token lifetime |
+| `CORS_ORIGIN` | `*` (dev), `''` (prod) | Allowed CORS origin (`*` = any, `''` = same-origin) |
+
+## API Endpoints
+
+### Auth
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/auth/login` | Obtain access + refresh tokens |
+| `POST` | `/auth/refresh` | Exchange a refresh token for a new access token |
+| `POST` | `/auth/logout` | Revoke the refresh token |
+
+### Users *(Bearer token required)*
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/users` | List users (`?page=1&limit=10`) |
+| `POST` | `/users` | Create a user |
+
+### Products *(Bearer token required)*
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/products` | List products |
+| `GET` | `/products/<id>` | Get a product by id |
+| `POST` | `/products` | Create a product |
+
+### System
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/health` | Health check — returns `{"status":"ok"}` |
+| `GET` | `/docs` | Swagger UI |
+| `GET` | `/redoc` | ReDoc |
+| `GET` | `/openapi.json` | OpenAPI 3.0 spec |
+
+## Running Tests
+
+```bash
+dart test
+dart test --reporter expanded                                # verbose output
+dart test test/controllers/auth_controller_test.dart        # single file
+```
+
+## Database Migrations
+
+```bash
+# Generate a new numbered migration file
+dartapi generate migration create_users_table
+
+# Apply all pending migrations
+dartapi db migrate
+
+# Preview without applying
+dartapi db migrate --dry-run
+```

@@ -10,7 +10,7 @@ Usage: dartapi <command>
 
 Available commands:
   create <project_name>                        Create a new DartAPI project
-  run [--port=<port>]                          Run the DartAPI server
+  run [--port=<port>] [--watch]                Run the DartAPI server (--watch reloads on file changes)
   generate controller <name>                   Generate a new controller
   generate migration <name>                    Generate a new SQL migration file
   db migrate [--dry-run]                       Run pending SQL migrations
@@ -22,6 +22,7 @@ Examples:
   dartapi generate migration create_users_table
   dartapi db migrate
   dartapi run --port=8080
+  dartapi run --watch
   dartapi docs --out openapi.json
 ''');
 }
@@ -75,7 +76,8 @@ Future<void> main(List<String> args) async {
         }
       }
 
-      runServer(port: port);
+      final watch = args.contains('--watch');
+      runServer(port: port, watch: watch);
 
     case 'generate':
       if (args.length < 3) {

@@ -17,11 +17,12 @@ class DartAPI {
 
   final DartApiDB? db;
   final JwtService? jwtService;
+  final String corsOrigin;
 
   final List<Future<void> Function()> _startupHooks = [];
   final List<Future<void> Function()> _shutdownHooks = [];
 
-  DartAPI({this.db, this.jwtService});
+  DartAPI({this.db, this.jwtService, this.corsOrigin = '*'});
 
   /// Registers a callback to run before the server starts accepting requests.
   void onStartup(Future<void> Function() hook) => _startupHooks.add(hook);
@@ -38,7 +39,7 @@ class DartAPI {
         .addMiddleware(loggingMiddleware())
         .addMiddleware(corsHeaders(
           headers: {
-            ACCESS_CONTROL_ALLOW_ORIGIN: '*',
+            ACCESS_CONTROL_ALLOW_ORIGIN: corsOrigin,
             ACCESS_CONTROL_ALLOW_METHODS: 'GET, POST, PUT, DELETE, OPTIONS',
             ACCESS_CONTROL_ALLOW_HEADERS: '*',
           },

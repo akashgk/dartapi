@@ -13,13 +13,14 @@ void main(List<String> args) async {
   // Determine the active environment (process var takes priority over .env).
   final appEnv = Platform.environment['APP_ENV'] ?? 'dev';
 
-  // Load .env then .env.<appEnv>; Platform.environment always wins.
+  // Load env/.env then env/.env.<appEnv>; Platform.environment always wins.
   final env = mergeEnv([
-    loadEnvFile('.env'),
-    loadEnvFile('.env.$appEnv'),
+    loadEnvFile('env/.env'),
+    loadEnvFile('env/.env.$appEnv'),
   ]);
 
   final config = AppConfig(environment: env);
+  config.validateForProduction();
 
   // Allow --port / --port=N to override the configured port at startup.
   int port = config.port;
@@ -59,7 +60,7 @@ void main(List<String> args) async {
     audience: '{{projectName}}-users',
   );
 
-  final app = DartAPI(db: db, jwtService: jwtService);
+  final app = DartAPI(db: db, jwtService: jwtService, corsOrigin: config.corsOrigin);
 
   app.addControllers([
     UserController(app.jwtService!),

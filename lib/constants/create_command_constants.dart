@@ -8,6 +8,7 @@ class CreateCommandConstants {
     '$name/lib/src/models',
     '$name/lib/src/dto',
     '$name/bin',
+    '$name/env',
     '$name/test',
     '$name/test/controllers',
   ];
@@ -32,14 +33,16 @@ class CreateCommandConstants {
       _load('user_dto.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/dto/user_dto.dart', v)),
       _load('login_dto.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/dto/login_dto.dart', v)),
       _load('product_dto.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/dto/product_dto.dart', v)),
-      // Environment files
-      _load('env.example.tmpl', vars).then((v) => MapEntry('$name/.env.example', v)),
-      _load('env.dev.tmpl', vars).then((v) => MapEntry('$name/.env.dev', v)),
-      _load('env.staging.tmpl', vars).then((v) => MapEntry('$name/.env.staging', v)),
-      _load('env.uat.tmpl', vars).then((v) => MapEntry('$name/.env.uat', v)),
-      _load('env.production.tmpl', vars).then((v) => MapEntry('$name/.env.production', v)),
+      // Environment files (in env/ subdirectory)
+      _load('env.example.tmpl', vars).then((v) => MapEntry('$name/env/.env.example', v)),
+      _load('env.dev.tmpl', vars).then((v) => MapEntry('$name/env/.env.dev', v)),
+      _load('env.staging.tmpl', vars).then((v) => MapEntry('$name/env/.env.staging', v)),
+      _load('env.uat.tmpl', vars).then((v) => MapEntry('$name/env/.env.uat', v)),
+      _load('env.production.tmpl', vars).then((v) => MapEntry('$name/env/.env.production', v)),
       // Git
       _load('gitignore.tmpl', vars).then((v) => MapEntry('$name/.gitignore', v)),
+      // Documentation
+      _load('readme.md.tmpl', vars).then((v) => MapEntry('$name/README.md', v)),
     ]);
     return Map.fromEntries(entries);
   }

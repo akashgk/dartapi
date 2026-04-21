@@ -16,4 +16,13 @@ Future<void> generateController(String name) async {
   File(controllerFile).writeAsStringSync(content);
 
   print('Controller ${name}Controller created at $controllerFile');
+  print('');
+  print('Next: register it in bin/main.dart:');
+  print('');
+  print("  import 'package:<your_project>/src/controllers/${name.toLowerCase()}_controller.dart';");
+  print('');
+  print('  app.addControllers([');
+  print('    ...,');
+  print('    ${name.capitalize()}Controller(),');
+  print('  ]);');
 }

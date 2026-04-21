@@ -1,3 +1,8 @@
+## 0.1.34
+- Add `dartapi generate resource <Name>` — scaffolds a full CRUD resource: controller (GET list, GET by id, POST, PUT, DELETE), DTO with `fromJson`/`toMap`, and model with `Serializable`
+- Generated controller uses `pathParam<int>`, `queryParam<int>`, `PaginatedResponse`, and returns `null` on DELETE for automatic 204 response
+- Prints wiring instructions and next steps after generation
+
 ## 0.1.33
 - Add `dartapi run --env=<environment>` — injects `APP_ENV` into the server process (`dartapi run --env=staging`)
 - Combine with `--watch`: `dartapi run --env=dev --watch`

@@ -12,6 +12,7 @@ Available commands:
   create <project_name>                        Create a new DartAPI project
   run [--port=<port>] [--env=<env>] [--watch]  Run the DartAPI server
   generate controller <name>                   Generate a new controller
+  generate resource <name>                     Scaffold a full CRUD resource (controller + dto + model)
   generate migration <name>                    Generate a new SQL migration file
   db migrate [--dry-run]                       Run pending SQL migrations
   docs [--port=<port>] [--out=<file>]          Export OpenAPI spec (server must be running)
@@ -19,6 +20,7 @@ Available commands:
 Examples:
   dartapi create my_project
   dartapi generate controller User
+  dartapi generate resource Product
   dartapi generate migration create_users_table
   dartapi db migrate
   dartapi run --port=8080
@@ -94,6 +96,8 @@ Future<void> main(List<String> args) async {
       }
       if (args[1] == 'controller') {
         await generateController(args[2]);
+      } else if (args[1] == 'resource') {
+        await generateResource(args[2]);
       } else if (args[1] == 'migration') {
         generateMigration(args[2]);
       } else {

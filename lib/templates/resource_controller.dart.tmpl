@@ -1,0 +1,98 @@
+import 'package:dartapi_core/dartapi_core.dart';
+import 'package:dartapi_db/dartapi_db.dart';
+import 'package:shelf/shelf.dart';
+
+import '../dto/{{resourcePath}}_dto.dart';
+import '../models/{{resourcePath}}.dart';
+
+class {{ResourceName}}Controller extends BaseController {
+  final DartApiDB _db;
+
+  {{ResourceName}}Controller(this._db);
+
+  @override
+  List<ApiRoute> get routes => [
+        // GET /{{resourcePath}}s?page=1&limit=20
+        ApiRoute<void, Map<String, dynamic>>(
+          method: ApiMethod.get,
+          path: '/{{resourcePath}}s',
+          summary: 'List all {{resourcePath}}s',
+          typedHandler: (request, _) async {
+            final page = request.queryParam<int>('page', defaultValue: 1)!;
+            final limit = request.queryParam<int>('limit', defaultValue: 20)!;
+            final p = Pagination(page: page, limit: limit);
+            final rows = await _db.select(
+              '{{resourcePath}}s',
+              limit: p.limit,
+              offset: p.offset,
+            );
+            final countResult = await _db.raw(
+              'SELECT COUNT(*) AS count FROM {{resourcePath}}s',
+            );
+            final total = (countResult.first['count'] as num).toInt();
+            return PaginatedResponse(
+              data: rows.map({{ResourceName}}.fromMap).toList(),
+              pagination: p,
+              total: total,
+            ).toJson();
+          },
+        ),
+
+        // GET /{{resourcePath}}s/<id>
+        ApiRoute<void, {{ResourceName}}>(
+          method: ApiMethod.get,
+          path: '/{{resourcePath}}s/<id>',
+          summary: 'Get {{resourcePath}} by id',
+          typedHandler: (request, _) async {
+            final id = request.pathParam<int>('id');
+            final rows = await _db.select('{{resourcePath}}s', where: {'id': id});
+            if (rows.isEmpty) throw ApiException(404, '{{ResourceName}} not found');
+            return {{ResourceName}}.fromMap(rows.first);
+          },
+        ),
+
+        // POST /{{resourcePath}}s
+        ApiRoute<{{ResourceName}}Dto, {{ResourceName}}>(
+          method: ApiMethod.post,
+          path: '/{{resourcePath}}s',
+          summary: 'Create {{resourcePath}}',
+          statusCode: 201,
+          dtoParser: {{ResourceName}}Dto.fromJson,
+          typedHandler: (request, dto) async {
+            final id = await _db.insert('{{resourcePath}}s', dto!.toMap());
+            final rows = await _db.select('{{resourcePath}}s', where: {'id': id});
+            return {{ResourceName}}.fromMap(rows.first);
+          },
+        ),
+
+        // PUT /{{resourcePath}}s/<id>
+        ApiRoute<{{ResourceName}}Dto, {{ResourceName}}>(
+          method: ApiMethod.put,
+          path: '/{{resourcePath}}s/<id>',
+          summary: 'Update {{resourcePath}}',
+          dtoParser: {{ResourceName}}Dto.fromJson,
+          typedHandler: (request, dto) async {
+            final id = request.pathParam<int>('id');
+            final existing = await _db.select('{{resourcePath}}s', where: {'id': id});
+            if (existing.isEmpty) throw ApiException(404, '{{ResourceName}} not found');
+            await _db.update('{{resourcePath}}s', dto!.toMap(), where: {'id': id});
+            final rows = await _db.select('{{resourcePath}}s', where: {'id': id});
+            return {{ResourceName}}.fromMap(rows.first);
+          },
+        ),
+
+        // DELETE /{{resourcePath}}s/<id>
+        ApiRoute<void, Object?>(
+          method: ApiMethod.delete,
+          path: '/{{resourcePath}}s/<id>',
+          summary: 'Delete {{resourcePath}}',
+          typedHandler: (request, _) async {
+            final id = request.pathParam<int>('id');
+            final existing = await _db.select('{{resourcePath}}s', where: {'id': id});
+            if (existing.isEmpty) throw ApiException(404, '{{ResourceName}} not found');
+            await _db.delete('{{resourcePath}}s', where: {'id': id});
+            return null; // 204 No Content
+          },
+        ),
+      ];
+}

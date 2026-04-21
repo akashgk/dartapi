@@ -49,23 +49,32 @@ cp env/.env.example env/.env.dev
 
 ```bash
 dart run bin/main.dart
+# via CLI (if dartapi is installed):
+dartapi run
+dartapi run --watch          # auto-reload on file changes
 ```
 
 With an explicit environment or custom port:
 
 ```bash
+dartapi run --env=dev --port=3000
+# or directly:
 APP_ENV=dev dart run bin/main.dart --port=3000
 ```
 
 ### Staging
 
 ```bash
+dartapi run --env=staging
+# or:
 APP_ENV=staging dart run bin/main.dart
 ```
 
 ### UAT
 
 ```bash
+dartapi run --env=uat
+# or:
 APP_ENV=uat dart run bin/main.dart
 ```
 

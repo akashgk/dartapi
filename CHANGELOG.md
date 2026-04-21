@@ -1,3 +1,8 @@
+## 0.1.33
+- Add `dartapi run --env=<environment>` — injects `APP_ENV` into the server process (`dartapi run --env=staging`)
+- Combine with `--watch`: `dartapi run --env=dev --watch`
+- Bump generated `dartapi_core` dep to `^0.0.21`
+
 ## 0.1.32
 - Move generated env files from project root into `env/` subdirectory — `env/.env.dev`, `env/.env.staging`, `env/.env.uat`, `env/.env.production`, `env/.env.example`
 - Update generated `main.dart` to load from `env/.env` and `env/.env.<APP_ENV>`

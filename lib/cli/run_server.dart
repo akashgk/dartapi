@@ -1,19 +1,25 @@
 import 'dart:async';
 import 'dart:io';
 
-void runServer({int port = 8080, bool watch = false}) async {
+void runServer({int port = 8080, bool watch = false, String? env}) async {
   Process? serverProcess;
 
   Future<void> startServer() async {
     print('Starting DartAPI server on port $port...');
+    if (env != null) print('Environment: $env');
     if (watch) print('Watch mode enabled — server restarts on file changes.');
     print('');
 
-    serverProcess = await Process.start('dart', [
-      'bin/main.dart',
-      '--port',
-      port.toString(),
-    ], mode: ProcessStartMode.inheritStdio);
+    final environment = env != null
+        ? {...Platform.environment, 'APP_ENV': env}
+        : null;
+
+    serverProcess = await Process.start(
+      'dart',
+      ['bin/main.dart', '--port', port.toString()],
+      mode: ProcessStartMode.inheritStdio,
+      environment: environment,
+    );
 
     print('');
     print('Type `r` to reload, `:q` to quit.');

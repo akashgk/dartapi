@@ -1,3 +1,7 @@
+## 0.1.35
+- Bump generated `dartapi_core` dep to `^0.0.22` (multi-field validation)
+- Bump generated `dartapi_auth` dep to `^0.0.9` (refresh token rotation)
+
 ## 0.1.34
 - Add `dartapi generate resource <Name>` — scaffolds a full CRUD resource: controller (GET list, GET by id, POST, PUT, DELETE), DTO with `fromJson`/`toMap`, and model with `Serializable`
 - Generated controller uses `pathParam<int>`, `queryParam<int>`, `PaginatedResponse`, and returns `null` on DELETE for automatic 204 response

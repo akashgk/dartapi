@@ -1,5 +1,6 @@
 export 'cli/create_project.dart';
 export 'cli/run_server.dart';
+export 'cli/build_project.dart';
 export 'cli/generate_controllers.dart';
 export 'cli/generate_resource.dart';
 export 'cli/generate_docs.dart';

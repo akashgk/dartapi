@@ -9,23 +9,27 @@ void printUsage() {
 Usage: dartapi <command>
 
 Available commands:
-  create <project_name>                        Create a new DartAPI project
-  run [--port=<port>] [--env=<env>] [--watch]  Run the DartAPI server
-  generate controller <name>                   Generate a new controller
-  generate resource <name>                     Scaffold a full CRUD resource (controller + dto + model)
-  generate migration <name>                    Generate a new SQL migration file
-  db migrate [--dry-run]                       Run pending SQL migrations
-  docs [--port=<port>] [--out=<file>]          Export OpenAPI spec (server must be running)
+  create <project_name>                              Create a new DartAPI project
+  run [--port=<port>] [--env=<env>] [--watch]        Run the DartAPI server
+       [--isolates=<n>]                              Spawn N isolates (multi-core)
+  build [--output=<name>] [--docker]                 AOT-compile to a native binary
+  generate controller <name>                         Generate a new controller
+  generate resource <name>                           Scaffold a full CRUD resource
+  generate migration <name>                          Generate a new SQL migration file
+  db migrate [--dry-run]                             Run pending SQL migrations
+  docs [--port=<port>] [--out=<file>]                Export OpenAPI spec
 
 Examples:
   dartapi create my_project
+  dartapi run --port=8080
+  dartapi run --isolates=4
+  dartapi run --env=staging --watch
+  dartapi build
+  dartapi build --output=myapp --docker
   dartapi generate controller User
   dartapi generate resource Product
   dartapi generate migration create_users_table
   dartapi db migrate
-  dartapi run --port=8080
-  dartapi run --env=staging
-  dartapi run --env=dev --watch
   dartapi docs --out openapi.json
 ''');
 }
@@ -87,7 +91,27 @@ Future<void> main(List<String> args) async {
           break;
         }
       }
-      runServer(port: port, watch: watch, env: env);
+      int isolates = 1;
+      for (final arg in args) {
+        if (arg.startsWith('--isolates=')) {
+          isolates = int.tryParse(arg.split('=')[1]) ?? 1;
+          break;
+        }
+      }
+      runServer(port: port, watch: watch, env: env, isolates: isolates);
+
+    case 'build':
+      String buildOutput = 'server';
+      bool buildDocker = false;
+      for (final arg in args.skip(1)) {
+        if (arg.startsWith('--output=')) {
+          buildOutput = arg.split('=')[1];
+        } else if (arg == '--docker') {
+          buildDocker = true;
+        }
+      }
+      await buildProject(output: buildOutput, docker: buildDocker);
+      break;
 
     case 'generate':
       if (args.length < 3) {

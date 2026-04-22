@@ -2,16 +2,33 @@ import 'dart:io';
 
 import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:dartapi_db/dartapi_db.dart';
-
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
 import 'package:dartapi_core/dartapi_core.dart';
 import 'dart:developer';
-
 import 'package:shelf_cors_headers/shelf_cors_headers.dart';
 
 import 'package:{{projectName}}/src/core/core.dart';
 
+/// Central application class — configure middleware, register controllers,
+/// and call [start] to bind the HTTP server.
+///
+/// ```dart
+/// final app = DartAPI(db: db, jwtService: jwtService);
+///
+/// app.enableCompression();
+/// app.enableBackgroundTasks();
+/// app.enableTimeout(const Duration(seconds: 30));
+/// app.enableRateLimit(maxRequests: 200, window: const Duration(minutes: 1));
+///
+/// app.addControllers([UserController(...), ProductController(...)]);
+///
+/// app.enableHealthCheck();
+/// app.enableMetrics();
+/// app.enableDocs(title: '{{projectName}}', version: '1.0.0');
+///
+/// await app.start(port: 8080);
+/// ```
 class DartAPI {
   final RouterManager _router = RouterManager();
 
@@ -22,34 +39,182 @@ class DartAPI {
   final List<Future<void> Function()> _startupHooks = [];
   final List<Future<void> Function()> _shutdownHooks = [];
 
+  // ── Opt-in middleware state ────────────────────────────────────────────────
+  bool _metricsEnabled = false;
+  bool _compressionEnabled = false;
+  int _compressionThreshold = 1024;
+  bool _backgroundTasksEnabled = false;
+  Duration? _requestTimeout;
+  int? _rateLimitMaxRequests;
+  Duration? _rateLimitWindow;
+  String Function(Request)? _rateLimitKeyExtractor;
+
   DartAPI({this.db, this.jwtService, this.corsOrigin = '*'});
 
-  /// Registers a callback to run before the server starts accepting requests.
+  // ── Hooks ─────────────────────────────────────────────────────────────────
+
+  /// Registers a callback to run once before the server starts accepting requests.
   void onStartup(Future<void> Function() hook) => _startupHooks.add(hook);
 
-  /// Registers a callback to run when the server receives SIGINT or SIGTERM.
+  /// Registers a callback to run when SIGINT or SIGTERM is received.
   void onShutdown(Future<void> Function() hook) => _shutdownHooks.add(hook);
 
-  Future<void> start({int port = 8080}) async {
+  // ── Opt-in middleware ──────────────────────────────────────────────────────
+
+  /// Gzip-compresses responses above [threshold] bytes when the client sends
+  /// `Accept-Encoding: gzip`. Highly recommended for JSON APIs.
+  void enableCompression({int threshold = 1024}) {
+    _compressionEnabled = true;
+    _compressionThreshold = threshold;
+  }
+
+  /// Enables `request.backgroundTasks` in every handler — schedule fire-and-
+  /// forget async work that runs after the response has been sent.
+  ///
+  /// ```dart
+  /// Future<User> createUser(Request req, UserDTO? dto) async {
+  ///   final user = await _service.createUser(dto!);
+  ///   req.backgroundTasks.add(() => emailService.sendWelcome(user.email));
+  ///   return user;  // response sent; welcome email fires after
+  /// }
+  /// ```
+  void enableBackgroundTasks() {
+    _backgroundTasksEnabled = true;
+  }
+
+  /// Returns `408 Request Timeout` if any handler does not complete within
+  /// [timeout]. Prevents slow upstream calls from tying up isolates.
+  void enableTimeout(Duration timeout) {
+    _requestTimeout = timeout;
+  }
+
+  /// Applies a global token-bucket rate limiter keyed by client IP by default.
+  ///
+  /// Clients that exceed [maxRequests] within [window] receive `429 Too Many
+  /// Requests` with `Retry-After` and `X-RateLimit-*` headers.
+  ///
+  /// Override [keyExtractor] to key by authenticated user, API key, etc.:
+  /// ```dart
+  /// app.enableRateLimit(
+  ///   maxRequests: 1000,
+  ///   window: const Duration(minutes: 1),
+  ///   keyExtractor: (req) => req.headers['x-user-id'] ?? 'anonymous',
+  /// );
+  /// ```
+  void enableRateLimit({
+    required int maxRequests,
+    required Duration window,
+    String Function(Request)? keyExtractor,
+  }) {
+    _rateLimitMaxRequests = maxRequests;
+    _rateLimitWindow = window;
+    _rateLimitKeyExtractor = keyExtractor;
+  }
+
+  /// Registers `GET /metrics` in Prometheus text format and adds
+  /// [metricsMiddleware] to the pipeline so every request is instrumented.
+  ///
+  /// Metrics exposed:
+  /// - `http_requests_total{method,path,status}` — request counter
+  /// - `http_request_duration_seconds{method,path}` — latency histogram
+  void enableMetrics() {
+    _metricsEnabled = true;
+    _router.registerController(MetricsController());
+  }
+
+  /// Registers `GET /health` — returns `{"status":"ok","uptime":"..."}`.
+  void enableHealthCheck() {
+    _router.registerController(HealthController());
+  }
+
+  /// Registers OpenAPI docs at `/openapi.json`, `/docs` (Swagger UI), and
+  /// `/redoc`. Call this *after* `addControllers` so all routes are collected.
+  void enableDocs({String title = 'API', String version = '1.0.0'}) {
+    _router.registerController(
+      DocsController(
+        apiRoutes: _router.collectedRoutes,
+        title: title,
+        version: version,
+      ),
+    );
+  }
+
+  // ── Controllers ───────────────────────────────────────────────────────────
+
+  void addControllers(List<BaseController> controllers) {
+    for (final controller in controllers) {
+      _router.registerController(controller);
+    }
+  }
+
+  // ── Start ─────────────────────────────────────────────────────────────────
+
+  /// Binds the HTTP server on [port].
+  ///
+  /// Set [shared] to `true` when multiple isolates run on the same port —
+  /// the OS will load-balance connections across all of them.
+  ///
+  /// Pipeline order (outermost first):
+  ///   requestId → globalException → rateLimit → timeout →
+  ///   backgroundTasks → logging → CORS → compression → metrics → router
+  Future<void> start({int port = 8080, bool shared = false}) async {
     for (final hook in _startupHooks) {
       await hook();
     }
 
-    final handler = const Pipeline()
-        .addMiddleware(loggingMiddleware())
-        .addMiddleware(corsHeaders(
-          headers: {
-            ACCESS_CONTROL_ALLOW_ORIGIN: corsOrigin,
-            ACCESS_CONTROL_ALLOW_METHODS: 'GET, POST, PUT, DELETE, OPTIONS',
-            ACCESS_CONTROL_ALLOW_HEADERS: '*',
+    var pipeline = const Pipeline()
+        // Attach a unique X-Request-Id to every request/response.
+        .addMiddleware(requestIdMiddleware())
+        // Catch unhandled exceptions and return structured JSON errors.
+        .addMiddleware(globalExceptionMiddleware(
+          onError: (error, stackTrace) {
+            log('[{{projectName}}] Unhandled error: $error\n$stackTrace');
+            if (error is ApiException) return error;
+            return const ApiException(500, 'Internal Server Error');
           },
-        ))
-        .addHandler(_router.handler.call);
+        ));
 
-    final server = await io.serve(handler, '0.0.0.0', port);
-    log('Server running on http://localhost:$port');
+    if (_rateLimitMaxRequests != null) {
+      pipeline = pipeline.addMiddleware(rateLimitMiddleware(
+        maxRequests: _rateLimitMaxRequests!,
+        window: _rateLimitWindow!,
+        keyExtractor: _rateLimitKeyExtractor,
+      ));
+    }
+
+    if (_requestTimeout != null) {
+      pipeline = pipeline.addMiddleware(timeoutMiddleware(_requestTimeout!));
+    }
+
+    if (_backgroundTasksEnabled) {
+      pipeline = pipeline.addMiddleware(backgroundTaskMiddleware());
+    }
+
+    pipeline = pipeline
+        .addMiddleware(loggingMiddleware())
+        .addMiddleware(corsHeaders(headers: {
+          ACCESS_CONTROL_ALLOW_ORIGIN: corsOrigin,
+          ACCESS_CONTROL_ALLOW_METHODS:
+              'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+          ACCESS_CONTROL_ALLOW_HEADERS:
+              'Authorization, Content-Type, X-Request-Id',
+        }));
+
+    if (_compressionEnabled) {
+      pipeline = pipeline
+          .addMiddleware(compressionMiddleware(threshold: _compressionThreshold));
+    }
+
+    if (_metricsEnabled) {
+      pipeline = pipeline.addMiddleware(metricsMiddleware());
+    }
+
+    final handler = pipeline.addHandler(_router.handler.call);
+    final server = await io.serve(handler, '0.0.0.0', port, shared: shared);
+    log('[{{projectName}}] Server running on http://localhost:$port');
 
     Future<void> shutdown() async {
+      log('[{{projectName}}] Shutting down...');
       for (final hook in _shutdownHooks) {
         await hook();
       }
@@ -66,26 +231,5 @@ class DartAPI {
         exit(0);
       });
     }
-  }
-
-  void addControllers(List<BaseController> controllers) {
-    for (var controller in controllers) {
-      _router.registerController(controller);
-    }
-  }
-
-  void enableDocs({String title = 'API', String version = '1.0.0'}) {
-    _router.registerController(
-      DocsController(
-        apiRoutes: _router.collectedRoutes,
-        title: title,
-        version: version,
-      ),
-    );
-  }
-
-  /// Registers `GET /health` — returns `{"status":"ok","uptime":"..."}`.
-  void enableHealthCheck() {
-    _router.registerController(HealthController());
   }
 }

@@ -1,18 +1,26 @@
 import 'dart:async';
 import 'dart:io';
 
-void runServer({int port = 8080, bool watch = false, String? env}) async {
+void runServer({
+  int port = 8080,
+  bool watch = false,
+  String? env,
+  int isolates = 1,
+}) async {
   Process? serverProcess;
 
   Future<void> startServer() async {
     print('Starting DartAPI server on port $port...');
     if (env != null) print('Environment: $env');
+    if (isolates > 1) print('Isolates: $isolates (multi-core mode)');
     if (watch) print('Watch mode enabled — server restarts on file changes.');
     print('');
 
-    final environment = env != null
-        ? {...Platform.environment, 'APP_ENV': env}
-        : null;
+    final environment = <String, String>{
+      ...Platform.environment,
+      if (env != null) 'APP_ENV': env,
+      if (isolates > 1) 'ISOLATES': isolates.toString(),
+    };
 
     serverProcess = await Process.start(
       'dart',

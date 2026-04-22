@@ -1,0 +1,24 @@
+# ── Stage 1: AOT compile ──────────────────────────────────────────────────────
+FROM dart:stable AS builder
+
+WORKDIR /app
+
+# Cache pub dependencies before copying source
+COPY pubspec.yaml pubspec.lock ./
+RUN dart pub get
+
+COPY . .
+RUN dart compile exe bin/main.dart -o /app/server
+
+# ── Stage 2: Minimal runtime image ────────────────────────────────────────────
+FROM debian:bookworm-slim
+
+WORKDIR /app
+
+# Copy the compiled binary and any env files
+COPY --from=builder /app/server /app/server
+COPY --from=builder /app/env    /app/env
+
+EXPOSE 8080
+
+CMD ["/app/server", "--port=8080"]

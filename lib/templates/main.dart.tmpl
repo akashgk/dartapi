@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:{{projectName}}/src/config/app_config.dart';
 import 'package:{{projectName}}/src/config/env_loader.dart';
@@ -14,20 +15,27 @@ import 'package:{{projectName}}/src/services/user_service.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:dartapi_db/dartapi_db.dart';
 
-void main(List<String> args) async {
-  // Determine the active environment (process var takes priority over .env).
+/// Entry point for additional isolates spawned by `dartapi run --isolates=N`.
+/// Each isolate independently builds the full application and binds to the
+/// shared port — the OS load-balances connections across all of them.
+Future<void> _isolateEntry(int port) => _startApp(port, shared: true);
+
+Future<void> main(List<String> args) async {
+  // ── Environment ────────────────────────────────────────────────────────────
   final appEnv = Platform.environment['APP_ENV'] ?? 'dev';
 
-  // Load env/.env then env/.env.<appEnv>; Platform.environment always wins.
+  // Load base .env then environment-specific override.
+  // Platform.environment always wins over file values.
   final env = mergeEnv([
     loadEnvFile('env/.env'),
     loadEnvFile('env/.env.$appEnv'),
   ]);
 
   final config = AppConfig(environment: env);
-  config.validateForProduction();
+  config.validateForProduction(); // Warns if dev placeholder secrets are used.
 
-  // Allow --port / --port=N to override the configured port at startup.
+  // ── Port ───────────────────────────────────────────────────────────────────
+  // Priority: --port flag > PORT env var > config default (8080)
   int port = config.port;
   for (var i = 0; i < args.length; i++) {
     if (args[i] == '--port' && i + 1 < args.length) {
@@ -39,12 +47,41 @@ void main(List<String> args) async {
     }
   }
 
-  if (config.debug) {
-    print('[{{projectName}}] env    : $appEnv');
-    print('[{{projectName}}] port   : $port');
-    print('[{{projectName}}] db     : ${config.dbHost}:${config.dbPort}/${config.dbName}');
+  // ── Multi-core ─────────────────────────────────────────────────────────────
+  // Set ISOLATES=N (via `dartapi run --isolates=N`) to spawn N Dart isolates
+  // bound to the same port. Each gets its own event loop and DB connections.
+  final isolates = int.tryParse(Platform.environment['ISOLATES'] ?? '1') ?? 1;
+
+  if (isolates > 1) {
+    for (var i = 0; i < isolates - 1; i++) {
+      await Isolate.spawn(_isolateEntry, port);
+    }
   }
 
+  await _startApp(port, shared: isolates > 1);
+}
+
+Future<void> _startApp(int port, {bool shared = false}) async {
+  final appEnv = Platform.environment['APP_ENV'] ?? 'dev';
+
+  final env = mergeEnv([
+    loadEnvFile('env/.env'),
+    loadEnvFile('env/.env.$appEnv'),
+  ]);
+
+  final config = AppConfig(environment: env);
+
+  if (config.debug) {
+    print('[{{projectName}}] env      : $appEnv');
+    print('[{{projectName}}] port     : $port');
+    print('[{{projectName}}] db       : ${config.dbHost}:${config.dbPort}/${config.dbName}');
+    print('[{{projectName}}] shared   : $shared');
+  }
+
+  // ── Database ───────────────────────────────────────────────────────────────
+  // Swap DbType.postgres for DbType.mysql or DbType.sqlite as needed.
+  // For quick local dev without a database, comment this out and use
+  // InMemory* repositories instead (no migrations needed).
   final db = await DatabaseFactory.create(DbConfig(
     type: DbType.postgres,
     host: config.dbHost,
@@ -55,35 +92,75 @@ void main(List<String> args) async {
     poolConfig: PoolConfig(maxConnections: config.dbPoolSize),
   ));
 
+  // Run all pending *.sql files in migrations/ on every startup.
+  // Already-applied migrations are tracked in _dartapi_migrations and skipped.
+  await MigrationRunner(db).run();
+
+  // ── Auth ───────────────────────────────────────────────────────────────────
+  // InMemoryTokenStore keeps revoked JTIs in-process.
+  // Replace with a Redis or database-backed store for multi-instance deployments
+  // or to survive server restarts.
+  final tokenStore = InMemoryTokenStore();
+
   final jwtService = JwtService(
     accessTokenSecret: config.jwtAccessSecret,
     refreshTokenSecret: config.jwtRefreshSecret,
     issuer: '{{projectName}}',
     audience: '{{projectName}}-users',
+    tokenStore: tokenStore,
   );
 
-  // Repositories — swap InMemory* for Db* variants to connect to your database.
+  // ── Repositories ───────────────────────────────────────────────────────────
+  // Swap Db* for InMemory* to develop locally without a database.
   final userRepository = DbUserRepository(db);
   final productRepository = DbProductRepository(db);
 
-  // Services
+  // ── Services ───────────────────────────────────────────────────────────────
   final authService = AuthService(jwtService: jwtService);
   final userService = UserService(repository: userRepository);
   final productService = ProductService(repository: productRepository);
 
+  // ── App ────────────────────────────────────────────────────────────────────
   final app = DartAPI(
     db: db,
     jwtService: jwtService,
     corsOrigin: config.corsOrigin,
   );
 
+  // ── Middleware ─────────────────────────────────────────────────────────────
+  // requestIdMiddleware and globalExceptionMiddleware are always active.
+  // The methods below opt-in to additional production middleware.
+  app.enableCompression();                          // Gzip responses > 1 KB
+  app.enableBackgroundTasks();                      // async post-response work
+  app.enableTimeout(const Duration(seconds: 30));   // 408 on hung handlers
+  app.enableRateLimit(
+    maxRequests: 200,
+    window: const Duration(minutes: 1),
+    // Key by authenticated user ID when available; fall back to IP:
+    // keyExtractor: (req) => req.context['userId']?.toString() ?? req.headers['x-forwarded-for'] ?? 'unknown',
+  );
+
+  // ── Controllers ────────────────────────────────────────────────────────────
   app.addControllers([
-    AuthController(authService: authService),
+    AuthController(authService: authService, jwtService: jwtService),
     UserController(userService: userService, jwtService: jwtService),
     ProductController(productService: productService, jwtService: jwtService),
   ]);
 
-  app.enableDocs(title: '{{projectName}}', version: '1.0.0');
-  app.enableHealthCheck();
-  app.start(port: port);
+  // ── Built-in endpoints ─────────────────────────────────────────────────────
+  app.enableHealthCheck();                                   // GET /health
+  app.enableMetrics();                                       // GET /metrics
+  app.enableDocs(title: '{{projectName}}', version: '1.0.0'); // GET /docs
+
+  // ── Hooks ──────────────────────────────────────────────────────────────────
+  app.onStartup(() async {
+    if (config.debug) print('[{{projectName}}] Startup complete.');
+  });
+
+  app.onShutdown(() async {
+    if (config.debug) print('[{{projectName}}] Closing database pool...');
+    await db.close();
+  });
+
+  await app.start(port: port, shared: shared);
 }

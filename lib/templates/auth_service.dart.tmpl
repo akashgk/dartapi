@@ -1,0 +1,44 @@
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:dartapi_core/dartapi_core.dart';
+import '../dto/login_dto.dart';
+import '../models/token_response.dart';
+
+class AuthService {
+  final JwtService _jwtService;
+
+  AuthService({required JwtService jwtService}) : _jwtService = jwtService;
+
+  TokenResponse login(LoginDTO dto) {
+    // TODO: Replace with a real user lookup from the database.
+    if (dto.username != 'admin@example.com' || dto.password != 'password') {
+      throw const ApiException(401, 'Invalid credentials');
+    }
+
+    final accessToken = _jwtService.generateAccessToken(
+      claims: {'sub': 'user-1', 'email': dto.username, 'role': 'admin'},
+    );
+    final refreshToken =
+        _jwtService.generateRefreshToken(accessToken: accessToken);
+
+    return TokenResponse(accessToken: accessToken, refreshToken: refreshToken);
+  }
+
+  Future<TokenResponse> refresh(String refreshToken) async {
+    final payload = await _jwtService.verifyRefreshToken(refreshToken);
+    if (payload == null) {
+      throw const ApiException(401, 'Invalid or expired refresh token');
+    }
+
+    final newAccessToken = _jwtService.generateAccessToken(
+      claims: {
+        'sub': payload['sub'],
+        'role': payload['role'] ?? 'user',
+      },
+    );
+
+    return TokenResponse(
+      accessToken: newAccessToken,
+      refreshToken: refreshToken,
+    );
+  }
+}

@@ -1,0 +1,23 @@
+import 'package:dartapi_core/dartapi_core.dart';
+import '../dto/user_dto.dart';
+import '../models/user.dart';
+import '../repositories/user_repository.dart';
+
+class UserService {
+  final UserRepository _repo;
+
+  UserService({required UserRepository repository}) : _repo = repository;
+
+  Future<List<User>> getUsers({int page = 1, int limit = 20}) =>
+      _repo.findAll(page: page, limit: limit);
+
+  Future<User> getUser(int id) async {
+    final user = await _repo.findById(id);
+    if (user == null) throw const ApiException(404, 'User not found');
+    return user;
+  }
+
+  Future<User> createUser(UserDTO dto) => _repo.create(
+        User(name: dto.name, age: dto.age, email: dto.email),
+      );
+}

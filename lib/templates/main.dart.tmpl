@@ -6,6 +6,11 @@ import 'package:{{projectName}}/src/controllers/auth_controller.dart';
 import 'package:{{projectName}}/src/controllers/product_controller.dart';
 import 'package:{{projectName}}/src/controllers/user_controller.dart';
 import 'package:{{projectName}}/src/core/core.dart';
+import 'package:{{projectName}}/src/repositories/product_repository.dart';
+import 'package:{{projectName}}/src/repositories/user_repository.dart';
+import 'package:{{projectName}}/src/services/auth_service.dart';
+import 'package:{{projectName}}/src/services/product_service.dart';
+import 'package:{{projectName}}/src/services/user_service.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:dartapi_db/dartapi_db.dart';
 
@@ -35,13 +40,12 @@ void main(List<String> args) async {
   }
 
   if (config.debug) {
-    print('[{{projectName}}] environment : $appEnv');
-    print('[{{projectName}}] port        : $port');
-    print('[{{projectName}}] db          : ${config.dbHost}:${config.dbPort}/${config.dbName}');
-    print('[{{projectName}}] log level   : ${config.logLevel}');
+    print('[{{projectName}}] env    : $appEnv');
+    print('[{{projectName}}] port   : $port');
+    print('[{{projectName}}] db     : ${config.dbHost}:${config.dbPort}/${config.dbName}');
   }
 
-  final dbConfig = DbConfig(
+  final db = await DatabaseFactory.create(DbConfig(
     type: DbType.postgres,
     host: config.dbHost,
     port: config.dbPort,
@@ -49,9 +53,7 @@ void main(List<String> args) async {
     username: config.dbUser,
     password: config.dbPassword,
     poolConfig: PoolConfig(maxConnections: config.dbPoolSize),
-  );
-
-  final DartApiDB db = await DatabaseFactory.create(dbConfig);
+  ));
 
   final jwtService = JwtService(
     accessTokenSecret: config.jwtAccessSecret,
@@ -60,16 +62,28 @@ void main(List<String> args) async {
     audience: '{{projectName}}-users',
   );
 
-  final app = DartAPI(db: db, jwtService: jwtService, corsOrigin: config.corsOrigin);
+  // Repositories — swap InMemory* for Db* variants to connect to your database.
+  final userRepository = DbUserRepository(db);
+  final productRepository = DbProductRepository(db);
+
+  // Services
+  final authService = AuthService(jwtService: jwtService);
+  final userService = UserService(repository: userRepository);
+  final productService = ProductService(repository: productRepository);
+
+  final app = DartAPI(
+    db: db,
+    jwtService: jwtService,
+    corsOrigin: config.corsOrigin,
+  );
 
   app.addControllers([
-    UserController(app.jwtService!),
-    AuthController(app.jwtService!),
-    ProductController(db, app.jwtService!),
+    AuthController(authService: authService),
+    UserController(userService: userService, jwtService: jwtService),
+    ProductController(productService: productService, jwtService: jwtService),
   ]);
 
   app.enableDocs(title: '{{projectName}}', version: '1.0.0');
   app.enableHealthCheck();
-
   app.start(port: port);
 }

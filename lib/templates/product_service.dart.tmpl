@@ -1,0 +1,31 @@
+import 'package:dartapi_core/dartapi_core.dart';
+import '../dto/product_dto.dart';
+import '../repositories/product_repository.dart';
+
+class ProductService {
+  final ProductRepository _repo;
+
+  ProductService({required ProductRepository repository}) : _repo = repository;
+
+  Future<List<ProductDto>> getProducts({int page = 1, int limit = 20}) =>
+      _repo.findAll(page: page, limit: limit);
+
+  Future<ProductDto> getProduct(int id) async {
+    final product = await _repo.findById(id);
+    if (product == null) throw const ApiException(404, 'Product not found');
+    return product;
+  }
+
+  Future<ProductDto> createProduct(ProductDto dto) => _repo.create(dto);
+
+  Future<ProductDto> updateProduct(int id, ProductDto dto) async {
+    final updated = await _repo.update(id, dto);
+    if (updated == null) throw const ApiException(404, 'Product not found');
+    return updated;
+  }
+
+  Future<void> deleteProduct(int id) async {
+    final deleted = await _repo.delete(id);
+    if (!deleted) throw const ApiException(404, 'Product not found');
+  }
+}

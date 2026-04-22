@@ -1,0 +1,107 @@
+import 'package:dartapi_db/dartapi_db.dart';
+import '../dto/product_dto.dart';
+
+abstract class ProductRepository {
+  Future<List<ProductDto>> findAll({int page = 1, int limit = 20});
+  Future<ProductDto?> findById(int id);
+  Future<ProductDto> create(ProductDto dto);
+  Future<ProductDto?> update(int id, ProductDto dto);
+  Future<bool> delete(int id);
+}
+
+/// In-memory repository — ships with the project for local dev and tests.
+/// Swap for [DbProductRepository] in [main.dart] when you have a real database.
+class InMemoryProductRepository implements ProductRepository {
+  final List<ProductDto> _store = [
+    ProductDto(id: 1, name: 'Widget', price: 9.99, quantity: 100),
+    ProductDto(id: 2, name: 'Gadget', price: 24.99, quantity: 50),
+  ];
+  int _nextId = 3;
+
+  @override
+  Future<List<ProductDto>> findAll({int page = 1, int limit = 20}) async {
+    final offset = (page - 1) * limit;
+    return _store.skip(offset).take(limit).toList();
+  }
+
+  @override
+  Future<ProductDto?> findById(int id) async {
+    for (final p in _store) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  @override
+  Future<ProductDto> create(ProductDto dto) async {
+    final created = ProductDto(
+      id: _nextId++,
+      name: dto.name,
+      price: dto.price,
+      quantity: dto.quantity,
+    );
+    _store.add(created);
+    return created;
+  }
+
+  @override
+  Future<ProductDto?> update(int id, ProductDto dto) async {
+    for (var i = 0; i < _store.length; i++) {
+      if (_store[i].id == id) {
+        final updated = ProductDto(
+          id: id,
+          name: dto.name,
+          price: dto.price,
+          quantity: dto.quantity,
+        );
+        _store[i] = updated;
+        return updated;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Future<bool> delete(int id) async {
+    final before = _store.length;
+    _store.removeWhere((p) => p.id == id);
+    return _store.length < before;
+  }
+}
+
+/// PostgreSQL-backed repository. Used in production via [main.dart].
+class DbProductRepository implements ProductRepository {
+  final DartApiDB _db;
+  DbProductRepository(this._db);
+
+  @override
+  Future<List<ProductDto>> findAll({int page = 1, int limit = 20}) async {
+    final result = await _db.select('products');
+    final offset = (page - 1) * limit;
+    return result.rows.skip(offset).take(limit).map(ProductDto.fromRow).toList();
+  }
+
+  @override
+  Future<ProductDto?> findById(int id) async {
+    final result = await _db.select('products', where: {'id': id});
+    return result.isEmpty ? null : ProductDto.fromRow(result.rows.first);
+  }
+
+  @override
+  Future<ProductDto> create(ProductDto dto) async {
+    final result = await _db.insert('products', dto.toJson());
+    return ProductDto.fromRow(result.rows.first);
+  }
+
+  @override
+  Future<ProductDto?> update(int id, ProductDto dto) async {
+    final result = await _db.update('products', dto.toJson(), where: {'id': id});
+    return result.isEmpty ? null : ProductDto.fromRow(result.rows.first);
+  }
+
+  @override
+  Future<bool> delete(int id) async {
+    final result = await _db.delete('products', where: {'id': id});
+    return result.isNotEmpty || (result.affectedRows ?? 0) > 0;
+  }
+}

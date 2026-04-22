@@ -1,76 +1,98 @@
-import 'package:{{projectName}}/src/dto/product_dto.dart';
-import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:shelf/shelf.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:dartapi_core/dartapi_core.dart';
-import 'package:dartapi_db/dartapi_db.dart';
+import 'package:{{projectName}}/src/dto/product_dto.dart';
+import 'package:{{projectName}}/src/services/product_service.dart';
 
 class ProductController extends BaseController {
-  final DartApiDB db;
-  final JwtService jwtService;
+  final ProductService _productService;
+  final JwtService _jwtService;
 
-  ProductController(this.db, this.jwtService);
+  ProductController({
+    required ProductService productService,
+    required JwtService jwtService,
+  })  : _productService = productService,
+        _jwtService = jwtService;
 
   @override
   List<ApiRoute> get routes => [
-        ApiRoute<void, List<ProductDto>>(
-          method: ApiMethod.get,
-          path: '/products',
-          typedHandler: getAll,
-          summary: 'Get all products',
-          description: 'Returns all products in the system',
-          middlewares: [
-            authMiddleware(jwtService),
-          ],
-          responseSchema: {
-            'type': 'array',
-            'items': ProductDto.schema,
-          },
-        ),
-        ApiRoute<void, ProductDto>(
-          method: ApiMethod.get,
-          path: '/products/<id>',
-          typedHandler: getById,
-          middlewares: [
-            authMiddleware(jwtService),
-          ],
-          summary: 'Get product by ID',
-          description: 'Returns a single product by its ID',
-          responseSchema: ProductDto.schema,
-        ),
-        ApiRoute<ProductDto, ProductDto>(
-          method: ApiMethod.post,
-          path: '/products',
-          statusCode: 201,
-          typedHandler: create,
-          middlewares: [
-            authMiddleware(jwtService),
-          ],
-          dtoParser: (data) {
-            return ProductDto.fromJson(data);
-          },
-          summary: 'Create a new product',
-          description: 'Adds a new product to the database',
-          requestSchema: ProductDto.schema,
-          responseSchema: ProductDto.schema,
-        ),
+        _listApi(),
+        _getApi(),
+        _createApi(),
+        _updateApi(),
+        _deleteApi(),
       ];
 
-  Future<List<ProductDto>> getAll(Request req, void _) async {
-    final DbResult result = await db.select('products');
-    return result.rows.map(ProductDto.fromRow).toList();
-  }
+  ApiRoute<void, List<ProductDto>> _listApi() => ApiRoute(
+        method: ApiMethod.get,
+        path: '/products',
+        typedHandler: _list,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'List products',
+        description: 'Returns a paginated list of products.',
+        responseSchema: {'type': 'array', 'items': ProductDto.schema},
+      );
 
-  Future<ProductDto> getById(Request req, void _) async {
-    final id = req.pathParam<int>('id');
-    final result = await db.select('products', where: {'id': id});
-    if (result.isEmpty) throw const ApiException(404, 'Product not found');
-    return ProductDto.fromRow(result.rows.first);
-  }
+  ApiRoute<void, ProductDto> _getApi() => ApiRoute(
+        method: ApiMethod.get,
+        path: '/products/<id>',
+        typedHandler: _get,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'Get product',
+        description: 'Returns a single product by ID.',
+        responseSchema: ProductDto.schema,
+      );
 
-  Future<ProductDto> create(Request req, ProductDto? dto) async {
-    if (dto == null) throw const ApiException(400, 'Invalid product data');
-    final result = await db.insert('products', dto.toJson());
-    if (result.rows.isEmpty) throw const ApiException(500, 'Failed to create product');
-    return ProductDto.fromRow(result.rows.first);
-  }
+  ApiRoute<ProductDto, ProductDto> _createApi() => ApiRoute(
+        method: ApiMethod.post,
+        path: '/products',
+        statusCode: 201,
+        typedHandler: _create,
+        dtoParser: ProductDto.fromJson,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'Create product',
+        description: 'Adds a new product.',
+        requestSchema: ProductDto.schema,
+        responseSchema: ProductDto.schema,
+      );
+
+  ApiRoute<ProductDto, ProductDto> _updateApi() => ApiRoute(
+        method: ApiMethod.put,
+        path: '/products/<id>',
+        typedHandler: _update,
+        dtoParser: ProductDto.fromJson,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'Update product',
+        description: 'Updates an existing product by ID.',
+        requestSchema: ProductDto.schema,
+        responseSchema: ProductDto.schema,
+      );
+
+  ApiRoute<void, void> _deleteApi() => ApiRoute(
+        method: ApiMethod.delete,
+        path: '/products/<id>',
+        statusCode: 204,
+        typedHandler: _delete,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'Delete product',
+        description: 'Removes a product by ID.',
+      );
+
+  Future<List<ProductDto>> _list(Request req, void _) =>
+      _productService.getProducts(
+        page: req.queryParam<int>('page') ?? 1,
+        limit: req.queryParam<int>('limit') ?? 20,
+      );
+
+  Future<ProductDto> _get(Request req, void _) =>
+      _productService.getProduct(req.pathParam<int>('id'));
+
+  Future<ProductDto> _create(Request req, ProductDto? dto) =>
+      _productService.createProduct(dto!);
+
+  Future<ProductDto> _update(Request req, ProductDto? dto) =>
+      _productService.updateProduct(req.pathParam<int>('id'), dto!);
+
+  Future<void> _delete(Request req, void _) =>
+      _productService.deleteProduct(req.pathParam<int>('id'));
 }

@@ -7,11 +7,13 @@ Future<void> createProject(String name) async {
 
   Process.runSync('dart', ['create', name]);
 
-  // dart create generates bin/<name>.dart and lib/<name>.dart — remove them
-  // so they don't conflict with our templates (bin/main.dart etc.)
+  // dart create generates bin/<name>.dart, lib/<name>.dart, and
+  // test/<name>_test.dart — remove them so they don't conflict with our
+  // templates.
   final stale = [
     '$name/bin/$name.dart',
     '$name/lib/$name.dart',
+    '$name/test/${name}_test.dart',
   ];
   for (final path in stale) {
     final f = File(path);

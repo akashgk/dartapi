@@ -1,53 +1,74 @@
 import 'package:shelf/shelf.dart';
 import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:dartapi_core/dartapi_core.dart';
-
 import 'package:{{projectName}}/src/dto/user_dto.dart';
+import 'package:{{projectName}}/src/models/user.dart';
+import 'package:{{projectName}}/src/services/user_service.dart';
 
 class UserController extends BaseController {
-  final JwtService jwtService;
+  final UserService _userService;
+  final JwtService _jwtService;
 
-  UserController(this.jwtService);
+  UserController({
+    required UserService userService,
+    required JwtService jwtService,
+  })  : _userService = userService,
+        _jwtService = jwtService;
 
   @override
-  List<ApiRoute> get routes => [
-        /// GET /users?page=1&limit=20
-        ApiRoute<void, List<String>>(
-          method: ApiMethod.get,
-          path: '/users',
-          typedHandler: getAllUsers,
-          middlewares: [authMiddleware(jwtService)],
-          summary: 'Get all users',
-          description: 'Returns a paginated list of usernames. Supports ?page and ?limit query params.',
-          responseSchema: {
-            'type': 'array',
-            'items': {'type': 'string'},
-            'example': ['Christy', 'Akash'],
+  List<ApiRoute> get routes => [_listApi(), _getApi(), _createApi()];
+
+  ApiRoute<void, List<User>> _listApi() => ApiRoute(
+        method: ApiMethod.get,
+        path: '/users',
+        typedHandler: _list,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'List users',
+        description:
+            'Returns a paginated list of users. Supports ?page and ?limit.',
+        responseSchema: {
+          'type': 'array',
+          'items': {
+            'type': 'object',
+            'properties': {
+              'id': {'type': 'integer'},
+              'name': {'type': 'string'},
+              'age': {'type': 'integer'},
+              'email': {'type': 'string'},
+            },
           },
-        ),
+        },
+      );
 
-        /// POST /users — returns 201 Created
-        ApiRoute<UserDTO, String>(
-          method: ApiMethod.post,
-          path: '/users',
-          statusCode: 201,
-          typedHandler: createUser,
-          dtoParser: (json) => UserDTO.fromJson(json),
-          summary: 'Create a new user',
-          description: 'Creates a new user with name and email',
-          requestSchema: UserDTO.schema,
-          responseSchema: {'type': 'string', 'example': 'User Christy created'},
-        ),
-      ];
+  ApiRoute<void, User> _getApi() => ApiRoute(
+        method: ApiMethod.get,
+        path: '/users/<id>',
+        typedHandler: _get,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'Get user',
+        description: 'Returns a single user by ID.',
+      );
 
-  Future<List<String>> getAllUsers(Request request, void _) async {
-    // final page = request.queryParam<int>('page', defaultValue: 1);
-    // final limit = request.queryParam<int>('limit', defaultValue: 20);
-    // TODO: replace with a real DB query using page and limit
-    return ['Christy', 'Akash'];
-  }
+  ApiRoute<UserDTO, User> _createApi() => ApiRoute(
+        method: ApiMethod.post,
+        path: '/users',
+        statusCode: 201,
+        typedHandler: _create,
+        dtoParser: UserDTO.fromJson,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'Create user',
+        description: 'Creates a new user.',
+        requestSchema: UserDTO.schema,
+      );
 
-  Future<String> createUser(Request request, UserDTO? dto) async {
-    return 'User ${dto?.name} created';
-  }
+  Future<List<User>> _list(Request req, void _) => _userService.getUsers(
+        page: req.queryParam<int>('page') ?? 1,
+        limit: req.queryParam<int>('limit') ?? 20,
+      );
+
+  Future<User> _get(Request req, void _) =>
+      _userService.getUser(req.pathParam<int>('id'));
+
+  Future<User> _create(Request req, UserDTO? dto) =>
+      _userService.createUser(dto!);
 }

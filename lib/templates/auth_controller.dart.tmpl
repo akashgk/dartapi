@@ -1,100 +1,61 @@
 import 'dart:convert';
-
 import 'package:shelf/shelf.dart';
 import 'package:dartapi_core/dartapi_core.dart';
-import 'package:dartapi_auth/dartapi_auth.dart';
-
 import 'package:{{projectName}}/src/dto/login_dto.dart';
 import 'package:{{projectName}}/src/models/token_response.dart';
+import 'package:{{projectName}}/src/services/auth_service.dart';
 
 class AuthController extends BaseController {
-  final JwtService jwtService;
+  final AuthService _authService;
 
-  AuthController(this.jwtService);
+  AuthController({required AuthService authService})
+      : _authService = authService;
 
   @override
-  List<ApiRoute> get routes => [
-        _loginApi(),
-        _refreshTokenApi(),
-      ];
+  List<ApiRoute> get routes => [_loginApi(), _refreshApi()];
 
-  ApiRoute<LoginDTO, TokenResponse> _loginApi() {
-    return ApiRoute<LoginDTO, TokenResponse>(
-      method: ApiMethod.post,
-      path: '/auth/login',
-      typedHandler: login,
-      dtoParser: (data) {
-        return LoginDTO.fromJson(data);
-      },
-      summary: 'Login',
-      description: 'Authenticate user and return access/refresh tokens.',
-      requestSchema: LoginDTO.schema,
-      responseSchema: TokenResponse.schema,
-    );
-  }
+  ApiRoute<LoginDTO, TokenResponse> _loginApi() => ApiRoute(
+        method: ApiMethod.post,
+        path: '/auth/login',
+        typedHandler: _login,
+        dtoParser: LoginDTO.fromJson,
+        summary: 'Login',
+        description: 'Authenticate and receive access and refresh tokens.',
+        requestSchema: LoginDTO.schema,
+        responseSchema: TokenResponse.schema,
+      );
 
-  ApiRoute<void, Map<String, dynamic>> _refreshTokenApi() {
-    return ApiRoute<void, Map<String, dynamic>>(
-      method: ApiMethod.post,
-      path: '/auth/refresh',
-      typedHandler: refreshToken,
-      summary: 'Refresh Token',
-      description: 'Use a valid refresh token to get a new access token.',
-      requestSchema: {
-        'type': 'object',
-        'properties': {
-          'refresh_token': {'type': 'string'},
+  ApiRoute<void, Map<String, dynamic>> _refreshApi() => ApiRoute(
+        method: ApiMethod.post,
+        path: '/auth/refresh',
+        typedHandler: _refresh,
+        summary: 'Refresh token',
+        description: 'Exchange a refresh token for a new access token.',
+        requestSchema: {
+          'type': 'object',
+          'properties': {
+            'refresh_token': {'type': 'string'},
+          },
+          'required': ['refresh_token'],
         },
-        'required': ['refresh_token'],
-        'example': {'refresh_token': '...'}
-      },
-      responseSchema: {
-        'type': 'object',
-        'properties': {
-          'access_token': {'type': 'string'},
+        responseSchema: {
+          'type': 'object',
+          'properties': {
+            'access_token': {'type': 'string'},
+          },
         },
-        'required': ['access_token'],
-        'example': {'access_token': '...'}
-      },
-    );
-  }
+      );
 
-  Future<TokenResponse> login(Request request, LoginDTO? dto) async {
-    if (dto?.username == 'admin@mail.com' && dto?.password == '1234') {
-      final accessToken = jwtService.generateAccessToken(claims: {
-        'sub': 'user-123',
-        'username': dto!.username,
-      });
+  Future<TokenResponse> _login(Request req, LoginDTO? dto) =>
+      Future.value(_authService.login(dto!));
 
-      final refreshToken =
-          jwtService.generateRefreshToken(accessToken: accessToken);
-
-      return TokenResponse(
-          accessToken: accessToken, refreshToken: refreshToken);
-    }
-
-    throw const ApiException(401, 'Invalid credentials');
-  }
-
-  Future<Map<String, dynamic>> refreshToken(Request request, void _) async {
-    final body = await request.readAsString();
-    final data = jsonDecode(body) as Map<String, dynamic>;
-
-    final refreshToken = data['refresh_token'] as String?;
+  Future<Map<String, dynamic>> _refresh(Request req, void _) async {
+    final body = jsonDecode(await req.readAsString()) as Map<String, dynamic>;
+    final refreshToken = body['refresh_token'] as String?;
     if (refreshToken == null) {
-      throw const ApiException(400, 'Missing refresh token');
+      throw const ApiException(400, 'refresh_token is required');
     }
-
-    final payload = await jwtService.verifyRefreshToken(refreshToken);
-    if (payload == null) {
-      throw const ApiException(401, 'Invalid or expired refresh token');
-    }
-
-    final newAccessToken = jwtService.generateAccessToken(claims: {
-      'sub': payload['sub'],
-      'username': payload['username'],
-    });
-
-    return {'access_token': newAccessToken};
+    final tokens = await _authService.refresh(refreshToken);
+    return {'access_token': tokens.accessToken};
   }
 }

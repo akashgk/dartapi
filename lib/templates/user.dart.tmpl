@@ -1,0 +1,30 @@
+import 'package:dartapi_core/dartapi_core.dart';
+
+class User implements Serializable {
+  final int? id;
+  final String name;
+  final int age;
+  final String email;
+
+  const User({
+    this.id,
+    required this.name,
+    required this.age,
+    required this.email,
+  });
+
+  factory User.fromRow(Map<String, dynamic> row) => User(
+        id: row['id'] as int?,
+        name: row['name'] as String,
+        age: row['age'] as int,
+        email: row['email'] as String,
+      );
+
+  @override
+  Map<String, dynamic> toJson() => {
+        if (id != null) 'id': id,
+        'name': name,
+        'age': age,
+        'email': email,
+      };
+}

@@ -16,7 +16,7 @@ class RouterManager {
       _collectedRoutes.add(route);
       Handler finalHandler = route.handler;
 
-      for (Middleware routeMiddleWare in route.middlewares) {
+      for (Middleware routeMiddleWare in route.effectiveMiddlewares) {
         finalHandler = routeMiddleWare(finalHandler);
       }
 

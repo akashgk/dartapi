@@ -11,9 +11,12 @@ class UserDTO {
     // validateAll collects every field error before throwing, so the client
     // receives the full list of problems in one response instead of one at a time.
     json.validateAll({
-      'name': [NotEmptyValidator(), MaxLengthValidator(100)],
-      'email': [EmailValidator()],
-      'age': [RangeValidator<int>(min: 0, max: 150)],
+      'name': () => json.verifyKey<String>('name',
+          validators: [NotEmptyValidator(), MaxLengthValidator(100)]),
+      'email': () => json.verifyKey<String>('email',
+          validators: [EmailValidator('Invalid email format')]),
+      'age': () => json.verifyKey<int>('age',
+          validators: [RangeValidator<int>(min: 0, max: 150)]),
     });
 
     return UserDTO(

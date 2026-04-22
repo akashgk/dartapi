@@ -5,12 +5,12 @@ enum AppEnvironment { dev, staging, uat, production }
 
 /// Central typed configuration loaded from environment variables.
 ///
-/// In `main.dart`, a [DotEnv] instance loads `.env` and `.env.<APP_ENV>`
+/// In `main.dart`, a [DotEnv] instance loads `.env` and `.env.`APP_ENV``
 /// before this class is instantiated. All values fall back to safe defaults
 /// so the server starts in development without any configuration.
 ///
 /// Priority (highest → lowest):
-///   real process env vars → .env.<APP_ENV> → .env → built-in defaults
+///   real process env vars → .env.`APP_ENV` → .env → built-in defaults
 ///
 /// Usage:
 /// ```dart

@@ -72,9 +72,13 @@ Future<void> _startApp(int port, {bool shared = false}) async {
   final config = AppConfig(environment: env);
 
   if (config.debug) {
+    // ignore: avoid_print
     print('[{{projectName}}] env      : $appEnv');
+    // ignore: avoid_print
     print('[{{projectName}}] port     : $port');
+    // ignore: avoid_print
     print('[{{projectName}}] db       : ${config.dbHost}:${config.dbPort}/${config.dbName}');
+    // ignore: avoid_print
     print('[{{projectName}}] shared   : $shared');
   }
 
@@ -94,7 +98,7 @@ Future<void> _startApp(int port, {bool shared = false}) async {
 
   // Run all pending *.sql files in migrations/ on every startup.
   // Already-applied migrations are tracked in _dartapi_migrations and skipped.
-  await MigrationRunner(db).run();
+  await MigrationRunner(db).migrate();
 
   // ── Auth ───────────────────────────────────────────────────────────────────
   // InMemoryTokenStore keeps revoked JTIs in-process.
@@ -154,10 +158,12 @@ Future<void> _startApp(int port, {bool shared = false}) async {
 
   // ── Hooks ──────────────────────────────────────────────────────────────────
   app.onStartup(() async {
+    // ignore: avoid_print
     if (config.debug) print('[{{projectName}}] Startup complete.');
   });
 
   app.onShutdown(() async {
+    // ignore: avoid_print
     if (config.debug) print('[{{projectName}}] Closing database pool...');
     await db.close();
   });

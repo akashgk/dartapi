@@ -1,3 +1,10 @@
+## 0.1.38
+- Fix generated `bin/main.dart`: `MigrationRunner(db).run()` → `.migrate()` (correct method name)
+- Fix generated `bin/main.dart`: add `// ignore: avoid_print` on all startup debug `print` calls
+- Fix generated `lib/src/dto/user_dto.dart`: `validateAll` now uses the correct `Map<String, void Function()>` signature; `EmailValidator` now receives its required message argument
+- Fix generated `test/services/user_service_test.dart`: `UserDTO(...)` constructors are now `const`
+- Fix generated `lib/src/config/app_config.dart`: wrap `.env.<APP_ENV>` in backticks in doc comment to suppress HTML angle-bracket warning
+
 ## 0.1.37
 - Generated project upgraded to production-grade scaffold:
   - Full CRUD for Users and Products (GET list, GET by id, POST, PUT, DELETE) with 404 guards

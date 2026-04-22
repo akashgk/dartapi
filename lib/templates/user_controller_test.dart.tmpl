@@ -53,7 +53,7 @@ void main() {
 
     group('createUser', () {
       test('assigns a non-null id and reflects the input fields', () async {
-        final dto = UserDTO(name: 'Carol', age: 28, email: 'carol@example.com');
+        const dto = UserDTO(name: 'Carol', age: 28, email: 'carol@example.com');
         final user = await userService.createUser(dto);
         expect(user.id, isNotNull);
         expect(user.name, equals('Carol'));
@@ -64,7 +64,7 @@ void main() {
       test('new user appears in subsequent getUsers call', () async {
         final before = await userService.getUsers();
         await userService.createUser(
-          UserDTO(name: 'Dave', age: 35, email: 'dave@example.com'),
+          const UserDTO(name: 'Dave', age: 35, email: 'dave@example.com'),
         );
         final after = await userService.getUsers();
         expect(after.length, equals(before.length + 1));
@@ -73,7 +73,7 @@ void main() {
 
     group('updateUser', () {
       test('returns the updated user with new field values', () async {
-        final dto = UserDTO(name: 'Alice Updated', age: 31, email: 'alice_new@example.com');
+        const dto = UserDTO(name: 'Alice Updated', age: 31, email: 'alice_new@example.com');
         final updated = await userService.updateUser(1, dto);
         expect(updated.id, equals(1));
         expect(updated.name, equals('Alice Updated'));
@@ -82,7 +82,7 @@ void main() {
       });
 
       test('update is reflected in a subsequent getUser call', () async {
-        final dto = UserDTO(name: 'Bob Renamed', age: 25, email: 'bob_renamed@example.com');
+        const dto = UserDTO(name: 'Bob Renamed', age: 25, email: 'bob_renamed@example.com');
         await userService.updateUser(2, dto);
         final fetched = await userService.getUser(2);
         expect(fetched.name, equals('Bob Renamed'));
@@ -92,7 +92,7 @@ void main() {
         expect(
           () => userService.updateUser(
             9999,
-            UserDTO(name: 'Ghost', age: 0, email: 'ghost@example.com'),
+            const UserDTO(name: 'Ghost', age: 0, email: 'ghost@example.com'),
           ),
           throwsA(
             isA<ApiException>()

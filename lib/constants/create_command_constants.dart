@@ -46,6 +46,9 @@ class CreateCommandConstants {
       _load('auth_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/auth_controller.dart', v)),
       _load('user_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/user_controller.dart', v)),
       _load('product_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/product_controller.dart', v)),
+      // Migrations
+      _load('migration_users.sql.tmpl', vars).then((v) => MapEntry('$name/migrations/0001_create_users_table.sql', v)),
+      _load('migration_products.sql.tmpl', vars).then((v) => MapEntry('$name/migrations/0002_create_products_table.sql', v)),
       // Tests
       _load('auth_controller_test.dart.tmpl', vars).then((v) => MapEntry('$name/test/services/auth_service_test.dart', v)),
       _load('user_controller_test.dart.tmpl', vars).then((v) => MapEntry('$name/test/services/user_service_test.dart', v)),

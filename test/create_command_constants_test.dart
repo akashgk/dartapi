@@ -9,11 +9,13 @@ void main() {
         'myapp/lib/src/core',
         'myapp/lib/src/config',
         'myapp/lib/src/controllers',
+        'myapp/lib/src/services',
+        'myapp/lib/src/repositories',
         'myapp/lib/src/models',
         'myapp/lib/src/dto',
         'myapp/bin',
         'myapp/test',
-        'myapp/test/controllers',
+        'myapp/test/services',
       ]));
     });
 
@@ -49,8 +51,8 @@ void main() {
         'myapp/lib/src/dto/login_dto.dart',
         'myapp/lib/src/dto/product_dto.dart',
         'myapp/lib/src/models/token_response.dart',
-        'myapp/test/controllers/user_controller_test.dart',
-        'myapp/test/controllers/auth_controller_test.dart',
+        'myapp/test/services/user_service_test.dart',
+        'myapp/test/services/auth_service_test.dart',
         'myapp/env/.env.example',
         'myapp/env/.env.dev',
         'myapp/env/.env.staging',

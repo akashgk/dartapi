@@ -12,49 +12,125 @@ void main() {
   });
 
   group('UserService', () {
-    test('getUsers returns pre-seeded users', () async {
-      final users = await userService.getUsers();
-      expect(users, isNotEmpty);
-      expect(users.first.name, isA<String>());
+    group('getUsers', () {
+      test('returns pre-seeded users', () async {
+        final users = await userService.getUsers();
+        expect(users, isNotEmpty);
+        expect(users.first.name, isA<String>());
+      });
+
+      test('respects pagination — page and limit', () async {
+        final page1 = await userService.getUsers(page: 1, limit: 1);
+        final page2 = await userService.getUsers(page: 2, limit: 1);
+        expect(page1.length, equals(1));
+        expect(page2.length, equals(1));
+        expect(page1.first.id, isNot(equals(page2.first.id)));
+      });
+
+      test('returns empty list for an out-of-range page', () async {
+        final page = await userService.getUsers(page: 9999, limit: 20);
+        expect(page, isEmpty);
+      });
     });
 
-    test('getUsers respects pagination', () async {
-      final page1 = await userService.getUsers(page: 1, limit: 1);
-      final page2 = await userService.getUsers(page: 2, limit: 1);
-      expect(page1.length, equals(1));
-      expect(page2.length, equals(1));
-      expect(page1.first.id, isNot(equals(page2.first.id)));
+    group('getUser', () {
+      test('returns the correct user by id', () async {
+        final user = await userService.getUser(1);
+        expect(user.id, equals(1));
+        expect(user.name, isA<String>());
+      });
+
+      test('throws 404 for an unknown id', () async {
+        expect(
+          () => userService.getUser(9999),
+          throwsA(
+            isA<ApiException>()
+                .having((e) => e.statusCode, 'statusCode', 404),
+          ),
+        );
+      });
     });
 
-    test('getUser returns the correct user by id', () async {
-      final user = await userService.getUser(1);
-      expect(user.id, equals(1));
-      expect(user.name, isA<String>());
+    group('createUser', () {
+      test('assigns a non-null id and reflects the input fields', () async {
+        final dto = UserDTO(name: 'Carol', age: 28, email: 'carol@example.com');
+        final user = await userService.createUser(dto);
+        expect(user.id, isNotNull);
+        expect(user.name, equals('Carol'));
+        expect(user.age, equals(28));
+        expect(user.email, equals('carol@example.com'));
+      });
+
+      test('new user appears in subsequent getUsers call', () async {
+        final before = await userService.getUsers();
+        await userService.createUser(
+          UserDTO(name: 'Dave', age: 35, email: 'dave@example.com'),
+        );
+        final after = await userService.getUsers();
+        expect(after.length, equals(before.length + 1));
+      });
     });
 
-    test('getUser throws 404 for unknown id', () async {
-      expect(
-        () => userService.getUser(9999),
-        throwsA(isA<ApiException>()
-            .having((e) => e.statusCode, 'statusCode', 404)),
-      );
+    group('updateUser', () {
+      test('returns the updated user with new field values', () async {
+        final dto = UserDTO(name: 'Alice Updated', age: 31, email: 'alice_new@example.com');
+        final updated = await userService.updateUser(1, dto);
+        expect(updated.id, equals(1));
+        expect(updated.name, equals('Alice Updated'));
+        expect(updated.age, equals(31));
+        expect(updated.email, equals('alice_new@example.com'));
+      });
+
+      test('update is reflected in a subsequent getUser call', () async {
+        final dto = UserDTO(name: 'Bob Renamed', age: 25, email: 'bob_renamed@example.com');
+        await userService.updateUser(2, dto);
+        final fetched = await userService.getUser(2);
+        expect(fetched.name, equals('Bob Renamed'));
+      });
+
+      test('throws 404 when updating a non-existent user', () async {
+        expect(
+          () => userService.updateUser(
+            9999,
+            UserDTO(name: 'Ghost', age: 0, email: 'ghost@example.com'),
+          ),
+          throwsA(
+            isA<ApiException>()
+                .having((e) => e.statusCode, 'statusCode', 404),
+          ),
+        );
+      });
     });
 
-    test('createUser adds and returns the new user with an id', () async {
-      final dto = UserDTO(name: 'Carol', age: 28, email: 'carol@example.com');
-      final user = await userService.createUser(dto);
-      expect(user.id, isNotNull);
-      expect(user.name, equals('Carol'));
-      expect(user.email, equals('carol@example.com'));
-    });
+    group('deleteUser', () {
+      test('removes the user so a subsequent getUser throws 404', () async {
+        await userService.deleteUser(1);
+        expect(
+          () => userService.getUser(1),
+          throwsA(
+            isA<ApiException>()
+                .having((e) => e.statusCode, 'statusCode', 404),
+          ),
+        );
+      });
 
-    test('createUser is reflected in subsequent getUsers call', () async {
-      final before = await userService.getUsers();
-      await userService.createUser(
-        UserDTO(name: 'Dave', age: 35, email: 'dave@example.com'),
-      );
-      final after = await userService.getUsers();
-      expect(after.length, equals(before.length + 1));
+      test('deleted user no longer appears in getUsers', () async {
+        final before = await userService.getUsers();
+        await userService.deleteUser(1);
+        final after = await userService.getUsers();
+        expect(after.length, equals(before.length - 1));
+        expect(after.any((u) => u.id == 1), isFalse);
+      });
+
+      test('throws 404 when deleting a non-existent user', () async {
+        expect(
+          () => userService.deleteUser(9999),
+          throwsA(
+            isA<ApiException>()
+                .having((e) => e.statusCode, 'statusCode', 404),
+          ),
+        );
+      });
     });
   });
 }

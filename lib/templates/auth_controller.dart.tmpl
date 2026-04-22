@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'package:shelf/shelf.dart';
+import 'package:dartapi_auth/dartapi_auth.dart';
 import 'package:dartapi_core/dartapi_core.dart';
 import 'package:{{projectName}}/src/dto/login_dto.dart';
 import 'package:{{projectName}}/src/models/token_response.dart';
@@ -7,12 +7,18 @@ import 'package:{{projectName}}/src/services/auth_service.dart';
 
 class AuthController extends BaseController {
   final AuthService _authService;
+  final JwtService _jwtService;
 
-  AuthController({required AuthService authService})
-      : _authService = authService;
+  AuthController({
+    required AuthService authService,
+    required JwtService jwtService,
+  })  : _authService = authService,
+        _jwtService = jwtService;
 
   @override
-  List<ApiRoute> get routes => [_loginApi(), _refreshApi()];
+  List<ApiRoute> get routes => [_loginApi(), _refreshApi(), _logoutApi()];
+
+  // ── Route definitions ──────────────────────────────────────────────────────
 
   ApiRoute<LoginDTO, TokenResponse> _loginApi() => ApiRoute(
         method: ApiMethod.post,
@@ -20,42 +26,65 @@ class AuthController extends BaseController {
         typedHandler: _login,
         dtoParser: LoginDTO.fromJson,
         summary: 'Login',
-        description: 'Authenticate and receive access and refresh tokens.',
+        description:
+            'Authenticates a user and returns an access + refresh token pair.',
         requestSchema: LoginDTO.schema,
         responseSchema: TokenResponse.schema,
       );
 
-  ApiRoute<void, Map<String, dynamic>> _refreshApi() => ApiRoute(
+  ApiRoute<_RefreshRequest, TokenResponse> _refreshApi() => ApiRoute(
         method: ApiMethod.post,
         path: '/auth/refresh',
         typedHandler: _refresh,
+        dtoParser: _RefreshRequest.fromJson,
         summary: 'Refresh token',
-        description: 'Exchange a refresh token for a new access token.',
+        description:
+            'Exchanges a valid refresh token for a new access token. '
+            'Send the refresh token in the JSON request body.',
         requestSchema: {
           'type': 'object',
+          'required': ['refreshToken'],
           'properties': {
-            'refresh_token': {'type': 'string'},
-          },
-          'required': ['refresh_token'],
-        },
-        responseSchema: {
-          'type': 'object',
-          'properties': {
-            'access_token': {'type': 'string'},
+            'refreshToken': {'type': 'string'},
           },
         },
+        responseSchema: TokenResponse.schema,
       );
+
+  ApiRoute<void, void> _logoutApi() => ApiRoute(
+        method: ApiMethod.post,
+        path: '/auth/logout',
+        statusCode: 204,
+        typedHandler: _logout,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'Logout',
+        description:
+            'Revokes the current bearer token. All subsequent requests '
+            'that present this token will receive 401 Unauthorized.',
+        security: [SecurityScheme.bearer],
+      );
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
 
   Future<TokenResponse> _login(Request req, LoginDTO? dto) =>
       Future.value(_authService.login(dto!));
 
-  Future<Map<String, dynamic>> _refresh(Request req, void _) async {
-    final body = jsonDecode(await req.readAsString()) as Map<String, dynamic>;
-    final refreshToken = body['refresh_token'] as String?;
-    if (refreshToken == null) {
-      throw const ApiException(400, 'refresh_token is required');
-    }
-    final tokens = await _authService.refresh(refreshToken);
-    return {'access_token': tokens.accessToken};
+  Future<TokenResponse> _refresh(Request req, _RefreshRequest? dto) =>
+      _authService.refresh(dto!.refreshToken);
+
+  Future<void> _logout(Request req, void _) async {
+    final authHeader = req.header<String>('authorization') ?? '';
+    if (!authHeader.startsWith('Bearer ')) return;
+    await _authService.logout(authHeader.substring(7));
   }
+}
+
+// ── Internal DTO ─────────────────────────────────────────────────────────────
+
+class _RefreshRequest {
+  final String refreshToken;
+  const _RefreshRequest({required this.refreshToken});
+
+  factory _RefreshRequest.fromJson(Map<String, dynamic> json) =>
+      _RefreshRequest(refreshToken: json.verifyKey<String>('refreshToken'));
 }

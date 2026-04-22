@@ -23,14 +23,35 @@ class ProductController extends BaseController {
         _deleteApi(),
       ];
 
-  ApiRoute<void, List<ProductDto>> _listApi() => ApiRoute(
+  // ── Route definitions ──────────────────────────────────────────────────────
+
+  ApiRoute<void, Map<String, dynamic>> _listApi() => ApiRoute(
         method: ApiMethod.get,
         path: '/products',
         typedHandler: _list,
         middlewares: [authMiddleware(_jwtService)],
+        // Cache the product list for 5 minutes. Individual create/update/delete
+        // requests will bypass the cache automatically (only GET is cached).
+        cacheTtl: const Duration(minutes: 5),
         summary: 'List products',
-        description: 'Returns a paginated list of products.',
-        responseSchema: {'type': 'array', 'items': ProductDto.schema},
+        description:
+            'Returns a paginated list of products. '
+            'Response is cached for 5 minutes; look for `X-Cache: HIT/MISS`.',
+        security: [SecurityScheme.bearer],
+        responseSchema: {
+          'type': 'object',
+          'properties': {
+            'data': {'type': 'array', 'items': ProductDto.schema},
+            'meta': {
+              'type': 'object',
+              'properties': {
+                'page': {'type': 'integer'},
+                'limit': {'type': 'integer'},
+                'count': {'type': 'integer'},
+              },
+            },
+          },
+        },
       );
 
   ApiRoute<void, ProductDto> _getApi() => ApiRoute(
@@ -41,6 +62,7 @@ class ProductController extends BaseController {
         summary: 'Get product',
         description: 'Returns a single product by ID.',
         responseSchema: ProductDto.schema,
+        security: [SecurityScheme.bearer],
       );
 
   ApiRoute<ProductDto, ProductDto> _createApi() => ApiRoute(
@@ -51,9 +73,12 @@ class ProductController extends BaseController {
         dtoParser: ProductDto.fromJson,
         middlewares: [authMiddleware(_jwtService)],
         summary: 'Create product',
-        description: 'Adds a new product.',
+        description:
+            'Adds a new product. A background task fires after the response '
+            'is sent — replace the placeholder with real notification logic.',
         requestSchema: ProductDto.schema,
         responseSchema: ProductDto.schema,
+        security: [SecurityScheme.bearer],
       );
 
   ApiRoute<ProductDto, ProductDto> _updateApi() => ApiRoute(
@@ -63,9 +88,10 @@ class ProductController extends BaseController {
         dtoParser: ProductDto.fromJson,
         middlewares: [authMiddleware(_jwtService)],
         summary: 'Update product',
-        description: 'Updates an existing product by ID.',
+        description: 'Replaces all fields of an existing product.',
         requestSchema: ProductDto.schema,
         responseSchema: ProductDto.schema,
+        security: [SecurityScheme.bearer],
       );
 
   ApiRoute<void, void> _deleteApi() => ApiRoute(
@@ -76,19 +102,36 @@ class ProductController extends BaseController {
         middlewares: [authMiddleware(_jwtService)],
         summary: 'Delete product',
         description: 'Removes a product by ID.',
+        security: [SecurityScheme.bearer],
       );
 
-  Future<List<ProductDto>> _list(Request req, void _) =>
-      _productService.getProducts(
-        page: req.queryParam<int>('page') ?? 1,
-        limit: req.queryParam<int>('limit') ?? 20,
-      );
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> _list(Request req, void _) async {
+    final page = req.queryParam<int>('page') ?? 1;
+    final limit = (req.queryParam<int>('limit') ?? 20).clamp(1, 100);
+    final products = await _productService.getProducts(page: page, limit: limit);
+    return {
+      'data': products.map((p) => p.toJson()).toList(),
+      'meta': {'page': page, 'limit': limit, 'count': products.length},
+    };
+  }
 
   Future<ProductDto> _get(Request req, void _) =>
       _productService.getProduct(req.pathParam<int>('id'));
 
-  Future<ProductDto> _create(Request req, ProductDto? dto) =>
-      _productService.createProduct(dto!);
+  Future<ProductDto> _create(Request req, ProductDto? dto) async {
+    final created = await _productService.createProduct(dto!);
+
+    // Background task: fires after the 201 response is delivered to the client.
+    // Replace with real notification logic (webhook, email, audit log, etc.).
+    req.backgroundTasks.add(() async {
+      // ignore: avoid_print
+      print('[bg] Product created: id=${created.id} name="${created.name}"');
+    });
+
+    return created;
+  }
 
   Future<ProductDto> _update(Request req, ProductDto? dto) =>
       _productService.updateProduct(req.pathParam<int>('id'), dto!);

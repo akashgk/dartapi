@@ -1,30 +1,93 @@
 # {{projectName}}
 
-A REST API built with [DartAPI](https://pub.dev/packages/dartapi_core).
+A production-ready REST API built with [DartAPI](https://pub.dev/packages/dartapi) — a FastAPI-inspired framework for Dart.
+
+**Features at a glance:**
+- JWT authentication (access + refresh tokens, revocation / logout)
+- Full CRUD for Users and Products
+- Paginated list endpoints
+- Per-route response caching (5-minute TTL on product list)
+- Background tasks (post-response async work)
+- Rate limiting, request timeouts, Gzip compression
+- Prometheus metrics (`GET /metrics`)
+- Health check (`GET /health`)
+- Swagger UI (`GET /docs`) + ReDoc (`GET /redoc`) + OpenAPI 3.0 spec
+- Structured JSON logging
+- PostgreSQL with Flyway-style migrations
+- Multi-environment config (dev / staging / UAT / production)
+- AOT native binary support (`dartapi build`)
+- Multi-core server (`dartapi run --isolates=N`)
+
+---
 
 ## Project Structure
 
 ```
-bin/main.dart        # Server entrypoint
-lib/src/
-  config/            # AppConfig, EnvConfig, env_loader
-  controllers/       # AuthController, UserController, ProductController
-  core/              # DartAPI server class, RouterManager
-  dto/               # Request/response DTOs
-  models/            # Domain models
-env/                 # Environment files
-  .env.example       # Committed — documents all available variables
-  .env.dev           # Local dev overrides (gitignored)
-  .env.staging       # Staging overrides (gitignored)
-  .env.uat           # UAT overrides (gitignored)
-  .env.production    # Production overrides (gitignored)
-migrations/          # Numbered .sql migration files
-test/                # Controller tests
+{{projectName}}/
+├── bin/
+│   └── main.dart                    # Server entry point
+├── lib/
+│   └── src/
+│       ├── config/
+│       │   ├── app_config.dart      # Typed config loaded from env
+│       │   └── env_loader.dart      # .env file loader (base + override)
+│       ├── core/
+│       │   ├── dartapi.dart         # DartAPI server class (pipeline wiring)
+│       │   ├── router.dart          # RouterManager — registers all controllers
+│       │   └── core.dart            # Package barrel export
+│       ├── controllers/
+│       │   ├── auth_controller.dart # POST /auth/login|refresh|logout
+│       │   ├── user_controller.dart # CRUD /users
+│       │   └── product_controller.dart # CRUD /products (with cache)
+│       ├── services/
+│       │   ├── auth_service.dart    # login / refresh / logout logic
+│       │   ├── user_service.dart    # user business logic
+│       │   └── product_service.dart # product business logic
+│       ├── repositories/
+│       │   ├── user_repository.dart    # abstract + InMemory + DB impl
+│       │   └── product_repository.dart # abstract + InMemory + DB impl
+│       ├── models/
+│       │   ├── user.dart            # User domain model
+│       │   └── token_response.dart  # JWT token pair
+│       └── dto/
+│           ├── login_dto.dart       # LoginDTO — username + password
+│           ├── user_dto.dart        # UserDTO — validated request body
+│           └── product_dto.dart     # ProductDto — validated request body
+├── migrations/
+│   ├── 0001_create_users_table.sql
+│   └── 0002_create_products_table.sql
+├── test/
+│   └── services/
+│       ├── auth_service_test.dart
+│       └── user_service_test.dart
+├── env/
+│   ├── .env.example     # Committed — documents all variables
+│   ├── .env.dev         # Local dev overrides (gitignored)
+│   ├── .env.staging     # Staging overrides (gitignored)
+│   ├── .env.uat         # UAT overrides (gitignored)
+│   └── .env.production  # Production overrides (gitignored)
+├── pubspec.yaml
+├── analysis_options.yaml
+└── .gitignore
 ```
+
+---
+
+## Prerequisites
+
+- [Dart SDK](https://dart.dev/get-dart) ≥ 3.0
+- PostgreSQL (or use the in-memory repositories for development without a DB)
+- `dartapi` CLI (optional but recommended):
+
+```bash
+dart pub global activate dartapi
+```
+
+---
 
 ## Environment Setup
 
-The server loads `.env` (base values) then `.env.<APP_ENV>` (environment overrides).
+The server loads `env/.env` as a base, then `env/.env.<APP_ENV>` as overrides.
 `Platform.environment` variables always take priority over file values.
 
 | Environment | File | `APP_ENV` value |
@@ -34,71 +97,14 @@ The server loads `.env` (base values) then `.env.<APP_ENV>` (environment overrid
 | UAT | `env/.env.uat` | `uat` |
 | Production | `env/.env.production` | `production` |
 
-Copy `.env.example` to get started:
-
 ```bash
 cp env/.env.example env/.env.dev
-# edit env/.env.dev with your local database credentials
+# fill in your local PostgreSQL credentials
 ```
 
-**Never commit `env/.env.*` files.** Only `env/.env.example` is tracked by git.
+> **Never commit `env/.env.*` files.** Only `env/.env.example` is tracked by git.
 
-## Running the Server
-
-### Development (default)
-
-```bash
-dart run bin/main.dart
-# via CLI (if dartapi is installed):
-dartapi run
-dartapi run --watch          # auto-reload on file changes
-```
-
-With an explicit environment or custom port:
-
-```bash
-dartapi run --env=dev --port=3000
-# or directly:
-APP_ENV=dev dart run bin/main.dart --port=3000
-```
-
-### Staging
-
-```bash
-dartapi run --env=staging
-# or:
-APP_ENV=staging dart run bin/main.dart
-```
-
-### UAT
-
-```bash
-dartapi run --env=uat
-# or:
-APP_ENV=uat dart run bin/main.dart
-```
-
-### Production
-
-Set real secrets via environment variables (do **not** rely on `.env.production` for secrets in CI/CD):
-
-```bash
-export APP_ENV=production
-export DB_HOST=your-db-host
-export DB_NAME={{projectName}}_production
-export DB_USER=your-db-user
-export DB_PASSWORD=your-db-password
-export JWT_ACCESS_SECRET=$(openssl rand -hex 32)
-export JWT_REFRESH_SECRET=$(openssl rand -hex 32)
-dart run bin/main.dart
-```
-
-Or compile to a self-contained native binary:
-
-```bash
-dart compile exe bin/main.dart -o {{projectName}}
-APP_ENV=production ./{{projectName}}
-```
+---
 
 ## Environment Variables Reference
 
@@ -108,69 +114,441 @@ APP_ENV=production ./{{projectName}}
 | `PORT` | `8080` | HTTP server port |
 | `DEBUG` | `true` | Print startup info (`false` in production) |
 | `LOG_LEVEL` | `debug` | `debug` / `info` / `warn` / `error` |
+| `LOG_FORMAT` | `text` | `text` for human-readable, `json` for structured machine-readable |
 | `DB_HOST` | `localhost` | PostgreSQL host |
 | `DB_PORT` | `5432` | PostgreSQL port |
 | `DB_NAME` | `{{projectName}}_dev` | Database name |
 | `DB_USER` | `postgres` | Database user |
-| `DB_PASSWORD` | `yourpassword` | Database password |
+| `DB_PASSWORD` | `yourpassword` | **Change in production** |
 | `DB_POOL_SIZE` | `5` (dev), `20` (prod) | Max connection pool size |
-| `JWT_ACCESS_SECRET` | *(dev placeholder)* | **Must be changed in production** |
-| `JWT_REFRESH_SECRET` | *(dev placeholder)* | **Must be changed in production** |
+| `JWT_ACCESS_SECRET` | *(dev placeholder)* | Min 32 chars. **Must be changed in production** |
+| `JWT_REFRESH_SECRET` | *(dev placeholder)* | Min 32 chars. **Must be changed in production** |
 | `JWT_ACCESS_EXPIRY_MINUTES` | `60` (dev), `15` (prod) | Access token lifetime |
 | `JWT_REFRESH_EXPIRY_DAYS` | `30` (dev), `7` (prod) | Refresh token lifetime |
-| `CORS_ORIGIN` | `*` (dev), `''` (prod) | Allowed CORS origin (`*` = any, `''` = same-origin) |
+| `CORS_ORIGIN` | `*` (dev), `''` (prod) | Allowed CORS origin (`*` = any, `''` = same-origin only) |
+| `RATE_LIMIT_MAX` | `100` | Max requests per window per IP |
+| `RATE_LIMIT_WINDOW_SECONDS` | `60` | Rate-limit window in seconds |
+| `REQUEST_TIMEOUT_SECONDS` | `30` | Per-request timeout in seconds |
+| `ISOLATES` | `1` | Number of server isolates (set >1 for multi-core) |
 
-## API Endpoints
+---
 
-### Auth
+## Running the Server
 
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/auth/login` | Obtain access + refresh tokens |
-| `POST` | `/auth/refresh` | Exchange a refresh token for a new access token |
-| `POST` | `/auth/logout` | Revoke the refresh token |
+### Development
+
+```bash
+dart run bin/main.dart
+APP_ENV=dev dart run bin/main.dart
+
+# via CLI (hot-reload on file changes):
+dartapi run
+dartapi run --watch
+dartapi run --env=dev --port=3000
+```
+
+### Staging / UAT
+
+```bash
+APP_ENV=staging dart run bin/main.dart
+APP_ENV=uat    dart run bin/main.dart
+```
+
+### Production — native binary (recommended)
+
+```bash
+# Compile once:
+dartapi build
+# or manually:
+dart compile exe bin/main.dart -o {{projectName}}
+
+# Run:
+APP_ENV=production \
+  DB_HOST=db.example.com \
+  DB_PASSWORD=secret \
+  JWT_ACCESS_SECRET=$(openssl rand -hex 32) \
+  JWT_REFRESH_SECRET=$(openssl rand -hex 32) \
+  ./{{projectName}}
+```
+
+### Multi-core (use all CPU cores)
+
+```bash
+dartapi run --isolates=4
+# or via env var:
+ISOLATES=4 dart run bin/main.dart
+```
+
+Each isolate binds to the same port (`shared: true`). The OS load-balances
+incoming connections across all isolates.
+
+### Docker
+
+```bash
+# Build image (multi-stage: compiles AOT, copies binary to slim runtime):
+docker build -t {{projectName}} .
+
+# Run:
+docker run -p 8080:8080 \
+  -e APP_ENV=production \
+  -e DB_HOST=host.docker.internal \
+  -e DB_PASSWORD=secret \
+  -e JWT_ACCESS_SECRET=<32-char-secret> \
+  -e JWT_REFRESH_SECRET=<32-char-secret> \
+  {{projectName}}
+```
+
+---
+
+## API Reference
+
+### Authentication
+
+All protected endpoints require a Bearer token in the `Authorization` header:
+
+```
+Authorization: Bearer <access_token>
+```
+
+#### `POST /auth/login`
+
+```json
+// Request
+{ "username": "admin@example.com", "password": "password" }
+
+// Response 200
+{
+  "accessToken":  "<jwt>",
+  "refreshToken": "<jwt>"
+}
+```
+
+#### `POST /auth/refresh`
+
+```json
+// Request
+{ "refreshToken": "<refresh_jwt>" }
+
+// Response 200
+{
+  "accessToken":  "<new_jwt>",
+  "refreshToken": "<same_refresh_jwt>"
+}
+```
+
+#### `POST /auth/logout` *(Bearer token required)*
+
+Revokes the access token immediately. Returns `204 No Content`.
+
+---
 
 ### Users *(Bearer token required)*
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/users` | List users (`?page=1&limit=10`) |
-| `POST` | `/users` | Create a user |
+#### `GET /users`
+
+Returns a paginated list of users.
+
+Query params: `?page=1&limit=20` (limit max 100)
+
+```json
+// Response 200
+{
+  "data": [
+    { "id": 1, "name": "Alice", "age": 30, "email": "alice@example.com" }
+  ],
+  "meta": { "page": 1, "limit": 20, "count": 1 }
+}
+```
+
+#### `GET /users/<id>`
+
+```json
+// Response 200
+{ "id": 1, "name": "Alice", "age": 30, "email": "alice@example.com" }
+
+// Response 404
+{ "error": "User not found", "statusCode": 404 }
+```
+
+#### `POST /users`
+
+All fields are validated. The response includes every validation error when present.
+
+```json
+// Request
+{ "name": "Carol", "age": 28, "email": "carol@example.com" }
+
+// Response 201
+{ "id": 3, "name": "Carol", "age": 28, "email": "carol@example.com" }
+
+// Response 422 (validation failed)
+{
+  "error": "Validation failed",
+  "statusCode": 422,
+  "details": ["email: invalid email format", "age: must be between 0 and 150"]
+}
+```
+
+#### `PUT /users/<id>`
+
+Replaces all fields. Returns `404` if not found.
+
+```json
+// Request
+{ "name": "Carol Updated", "age": 29, "email": "carol_new@example.com" }
+
+// Response 200
+{ "id": 3, "name": "Carol Updated", "age": 29, "email": "carol_new@example.com" }
+```
+
+#### `DELETE /users/<id>`
+
+Returns `204 No Content` on success, `404` if not found.
+
+---
 
 ### Products *(Bearer token required)*
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/products` | List products |
-| `GET` | `/products/<id>` | Get a product by id |
-| `POST` | `/products` | Create a product |
+The `GET /products` list is **cached for 5 minutes** per unique URL (including query params).
+Look for the `X-Cache: HIT` / `X-Cache: MISS` response header.
+
+#### `GET /products`
+
+```json
+// Response 200
+{
+  "data": [
+    { "id": 1, "name": "Widget", "price": 9.99, "quantity": 100 }
+  ],
+  "meta": { "page": 1, "limit": 20, "count": 1 }
+}
+```
+
+#### `GET /products/<id>`
+
+```json
+{ "id": 1, "name": "Widget", "price": 9.99, "quantity": 100 }
+```
+
+#### `POST /products`
+
+Fires a background task after the `201` response is delivered — replace the
+placeholder with real notification logic (webhook, email, audit log, etc.).
+
+```json
+// Request
+{ "name": "Gadget", "price": 49.99, "quantity": 50 }
+
+// Response 201
+{ "id": 2, "name": "Gadget", "price": 49.99, "quantity": 50 }
+```
+
+#### `PUT /products/<id>`
+
+```json
+// Request
+{ "name": "Gadget Pro", "price": 59.99, "quantity": 45 }
+
+// Response 200
+{ "id": 2, "name": "Gadget Pro", "price": 59.99, "quantity": 45 }
+```
+
+#### `DELETE /products/<id>`
+
+Returns `204 No Content` on success, `404` if not found.
+
+---
 
 ### System
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/health` | Health check — returns `{"status":"ok"}` |
-| `GET` | `/docs` | Swagger UI |
-| `GET` | `/redoc` | ReDoc |
-| `GET` | `/openapi.json` | OpenAPI 3.0 spec |
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/health` | None | `{"status":"ok","timestamp":"..."}` |
+| `GET` | `/metrics` | None | Prometheus text format (scrape endpoint) |
+| `GET` | `/docs` | None | Swagger UI with persistent Bearer token |
+| `GET` | `/redoc` | None | ReDoc documentation |
+| `GET` | `/openapi.json` | None | OpenAPI 3.0 spec (JSON) |
 
-## Running Tests
+---
 
-```bash
-dart test
-dart test --reporter expanded                                # verbose output
-dart test test/controllers/auth_controller_test.dart        # single file
+## Error Format
+
+All errors follow a consistent envelope:
+
+```json
+{
+  "error": "Human-readable message",
+  "statusCode": 422,
+  "details": ["field: reason"]   // present on validation errors only
+}
 ```
+
+| Status | Meaning |
+|---|---|
+| `400` | Bad request / malformed JSON |
+| `401` | Missing or invalid token |
+| `404` | Resource not found |
+| `422` | Validation failed |
+| `429` | Rate limit exceeded |
+| `500` | Unexpected server error |
+
+---
+
+## Middleware Pipeline
+
+Requests pass through middleware in this order (outermost → innermost):
+
+```
+requestIdMiddleware        → attaches X-Request-Id header
+globalExceptionMiddleware  → catches all unhandled exceptions
+rateLimitMiddleware        → 429 if IP exceeds rate limit
+timeoutMiddleware          → 503 if handler takes too long
+backgroundTaskMiddleware   → enables post-response async tasks
+loggingMiddleware          → logs method, path, status, duration
+corsMiddleware             → adds CORS headers
+compressionMiddleware      → Gzip responses > 1 KB
+metricsMiddleware          → tracks Prometheus counters/histograms
+router                     ← innermost — dispatches to controllers
+```
+
+Per-route cache middleware wraps individual routes (not the global pipeline).
+
+---
+
+## Prometheus Metrics
+
+`GET /metrics` returns a Prometheus-compatible scrape payload:
+
+```
+# HELP http_requests_total Total number of HTTP requests
+# TYPE http_requests_total counter
+http_requests_total{method="GET",path="/users",status="200"} 42
+
+# HELP http_request_duration_seconds HTTP request duration in seconds
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{le="0.005",...} 38
+...
+http_request_duration_seconds_sum{...} 0.84
+http_request_duration_seconds_count{...} 42
+```
+
+Add a scrape job in `prometheus.yml`:
+
+```yaml
+scrape_configs:
+  - job_name: '{{projectName}}'
+    static_configs:
+      - targets: ['localhost:8080']
+```
+
+---
 
 ## Database Migrations
 
+Migration files in `migrations/` are run in lexicographic order on startup via
+`MigrationRunner`. Applied migrations are tracked in `_dartapi_migrations` so
+each file runs exactly once.
+
 ```bash
 # Generate a new numbered migration file
-dartapi generate migration create_users_table
+dartapi generate migration add_column_to_users
 
-# Apply all pending migrations
+# Apply all pending migrations manually
 dartapi db migrate
 
 # Preview without applying
 dartapi db migrate --dry-run
 ```
+
+---
+
+## Running Tests
+
+```bash
+dart test                                         # all tests
+dart test --reporter expanded                     # verbose
+dart test test/services/auth_service_test.dart    # single file
+dart test test/services/user_service_test.dart
+```
+
+Tests use `InMemoryUserRepository` / `InMemoryTokenStore` — no database
+required to run the test suite.
+
+---
+
+## Architecture
+
+```
+Request
+  └── Middleware pipeline (requestId → rateLimit → timeout → logging → …)
+        └── Router → Controller.handler
+                          └── Service (business logic)
+                                └── Repository (data access)
+                                      ├── InMemoryXxxRepository  (dev / tests)
+                                      └── DbXxxRepository        (production)
+```
+
+- **Controllers** map HTTP verbs + paths to typed handlers via `ApiRoute`.
+- **Services** contain all business logic; they throw `ApiException` with
+  semantic HTTP status codes.
+- **Repositories** abstract storage; swap `InMemoryXxxRepository` for
+  `DbXxxRepository` in `main.dart` when a real database is available.
+- **DTOs** validate and parse request bodies; validation errors are collected
+  across all fields and returned together in a `422` response.
+
+---
+
+## Extending the App
+
+### Add a new resource
+
+```bash
+dartapi generate resource Order
+```
+
+This creates controller, service, repository, model, DTO, and migration stubs
+wired together and ready to fill in.
+
+### Add a new plain controller
+
+```bash
+dartapi generate controller Webhook
+```
+
+### Connect a real database
+
+In `bin/main.dart`, replace `InMemoryUserRepository()` with:
+
+```dart
+final userRepo = DbUserRepository(db);
+```
+
+The service layer is unchanged — only the repository binding differs.
+
+### Switch to RS256 JWT (asymmetric keys)
+
+In `bin/main.dart`, replace `JwtService(...)` with:
+
+```dart
+final jwtService = JwtService.asymmetric(
+  privateKeyPem: config.jwtPrivateKey,
+  publicKeyPem:  config.jwtPublicKey,
+  issuer:   config.jwtIssuer,
+  audience: config.jwtAudience,
+);
+```
+
+---
+
+## Production Checklist
+
+- [ ] Replace `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` with cryptographically random values (`openssl rand -hex 32`)
+- [ ] Set `APP_ENV=production`
+- [ ] Set `DEBUG=false`
+- [ ] Set `LOG_FORMAT=json` for structured logging (Datadog, GCP Logging, ELK)
+- [ ] Set `CORS_ORIGIN` to your actual frontend origin (not `*`)
+- [ ] Restrict `DB_USER` to the minimum required permissions
+- [ ] Enable TLS termination (nginx / load balancer in front of this service)
+- [ ] Point Prometheus at `GET /metrics`
+- [ ] Set `ISOLATES` to the number of available CPU cores
+- [ ] Compile to a native binary: `dartapi build --docker`

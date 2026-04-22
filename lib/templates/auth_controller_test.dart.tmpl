@@ -10,8 +10,8 @@ void main() {
 
   setUp(() {
     jwtService = JwtService(
-      accessTokenSecret: 'test-access-secret-key',
-      refreshTokenSecret: 'test-refresh-secret-key',
+      accessTokenSecret: 'test-access-secret-32-chars-long!!',
+      refreshTokenSecret: 'test-refresh-secret-32-chars-long!',
       issuer: 'test',
       audience: 'test-users',
     );
@@ -19,41 +19,75 @@ void main() {
   });
 
   group('AuthService', () {
-    test('login with valid credentials returns non-empty tokens', () {
-      final dto = LoginDTO(
-        username: 'admin@example.com',
-        password: 'password',
-      );
-      final result = authService.login(dto);
-      expect(result.accessToken, isNotEmpty);
-      expect(result.refreshToken, isNotEmpty);
+    group('login', () {
+      test('valid credentials return non-empty tokens', () {
+        final dto =
+            LoginDTO(username: 'admin@example.com', password: 'password');
+        final result = authService.login(dto);
+        expect(result.accessToken, isNotEmpty);
+        expect(result.refreshToken, isNotEmpty);
+      });
+
+      test('invalid credentials throw 401', () {
+        expect(
+          () => authService.login(
+              LoginDTO(username: 'bad@example.com', password: 'wrong')),
+          throwsA(
+            isA<ApiException>()
+                .having((e) => e.statusCode, 'statusCode', 401),
+          ),
+        );
+      });
+
+      test('access and refresh tokens are different strings', () {
+        final result = authService.login(
+            LoginDTO(username: 'admin@example.com', password: 'password'));
+        expect(result.accessToken, isNot(equals(result.refreshToken)));
+      });
     });
 
-    test('login with invalid credentials throws 401', () {
-      final dto = LoginDTO(username: 'wrong@example.com', password: 'wrong');
-      expect(
-        () => authService.login(dto),
-        throwsA(isA<ApiException>()
-            .having((e) => e.statusCode, 'statusCode', 401)),
-      );
+    group('refresh', () {
+      test('valid refresh token returns a new access token', () async {
+        final tokens = authService.login(
+            LoginDTO(username: 'admin@example.com', password: 'password'));
+        final refreshed = await authService.refresh(tokens.refreshToken);
+        expect(refreshed.accessToken, isNotEmpty);
+        expect(refreshed.refreshToken, equals(tokens.refreshToken));
+      });
+
+      test('invalid refresh token throws 401', () async {
+        expect(
+          () => authService.refresh('invalid.token.here'),
+          throwsA(
+            isA<ApiException>()
+                .having((e) => e.statusCode, 'statusCode', 401),
+          ),
+        );
+      });
     });
 
-    test('refresh with valid token returns new access token', () async {
-      final dto = LoginDTO(
-        username: 'admin@example.com',
-        password: 'password',
-      );
-      final tokens = authService.login(dto);
-      final refreshed = await authService.refresh(tokens.refreshToken);
-      expect(refreshed.accessToken, isNotEmpty);
-    });
+    group('logout', () {
+      test('revoked access token is no longer accepted', () async {
+        final tokens = authService.login(
+            LoginDTO(username: 'admin@example.com', password: 'password'));
 
-    test('refresh with invalid token throws 401', () async {
-      expect(
-        () => authService.refresh('invalid.token.here'),
-        throwsA(isA<ApiException>()
-            .having((e) => e.statusCode, 'statusCode', 401)),
-      );
+        // Revoke the token
+        await authService.logout(tokens.accessToken);
+
+        // A revoked token should fail verification
+        final payload =
+            await jwtService.verifyAccessToken(tokens.accessToken);
+        expect(payload, isNull);
+      });
+
+      test('logout does not throw for a valid token', () async {
+        final tokens = authService.login(
+            LoginDTO(username: 'admin@example.com', password: 'password'));
+        await expectLater(
+          authService.logout(tokens.accessToken),
+          completes,
+        );
+      });
     });
   });
 }

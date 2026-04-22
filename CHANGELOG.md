@@ -1,3 +1,24 @@
+## 0.1.37
+- Generated project upgraded to production-grade scaffold:
+  - Full CRUD for Users and Products (GET list, GET by id, POST, PUT, DELETE) with 404 guards
+  - Controller → Service → Repository enterprise architecture; `InMemoryXxxRepository` for dev/tests, `DbXxxRepository` for production
+  - Multi-field validation in `UserDTO.fromJson` via `validateAll` (collects all errors before throwing 422)
+  - Per-route 5-minute cache on `GET /products` with `X-Cache: HIT/MISS` header
+  - Background task demo on `POST /products` (fires after 201 response is delivered)
+  - `POST /auth/logout` endpoint that revokes the access token via `InMemoryTokenStore`
+  - SQL migration files `0001_create_users_table.sql` and `0002_create_products_table.sql` generated in `migrations/`
+  - Comprehensive `README.md` covering all features, full project structure, all running modes, complete API reference with request/response examples, middleware pipeline diagram, Prometheus metrics, production checklist, and extending guide
+  - Full `UserService` test suite — `getUsers` (pagination, empty page), `getUser` (404), `createUser`, `updateUser` (success + reflect + 404), `deleteUser` (success + list + 404)
+  - Auth test suite updated with `logout` group — verifies revoked token fails verification and logout completes without throw
+
+## 0.1.36
+- Add `dartapi build [--output=<name>] [--docker]` — AOT-compiles the project to a self-contained native binary via `dart compile exe`; `--docker` writes a multi-stage `Dockerfile` that produces a minimal `debian:bookworm-slim` runtime image
+- Add `dartapi run --isolates=N` — spawns N Dart isolates all bound to the same port (`HttpServer.bind shared: true`), using every CPU core
+- Generated `DartAPI.start()` gains a `shared: bool` parameter for multi-isolate mode
+- Generated `DartAPI.enableMetrics()` — registers `GET /metrics` (Prometheus text format) and adds `metricsMiddleware` to the pipeline
+- Generated `main.dart` reads `ISOLATES` env var, spawns N−1 extra isolates, and passes `shared: true` to `app.start()`
+- Bump generated `dartapi_core` dep to `^0.0.24`
+
 ## 0.1.35
 - Bump generated `dartapi_core` dep to `^0.0.22` (multi-field validation)
 - Bump generated `dartapi_auth` dep to `^0.0.9` (refresh token rotation)

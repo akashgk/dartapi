@@ -8,8 +8,17 @@ class AuthService {
 
   AuthService({required JwtService jwtService}) : _jwtService = jwtService;
 
+  /// Validates credentials and issues an access + refresh token pair.
+  ///
+  /// TODO: Replace the hardcoded credential check with a real database lookup:
+  /// ```dart
+  /// final user = await _userRepo.findByEmail(dto.username);
+  /// if (user == null || !verifyPassword(dto.password, user.passwordHash)) {
+  ///   throw const ApiException(401, 'Invalid credentials');
+  /// }
+  /// final claims = {'sub': user.id.toString(), 'email': user.email, 'role': user.role};
+  /// ```
   TokenResponse login(LoginDTO dto) {
-    // TODO: Replace with a real user lookup from the database.
     if (dto.username != 'admin@example.com' || dto.password != 'password') {
       throw const ApiException(401, 'Invalid credentials');
     }
@@ -23,6 +32,8 @@ class AuthService {
     return TokenResponse(accessToken: accessToken, refreshToken: refreshToken);
   }
 
+  /// Exchanges a valid refresh token for a new access token.
+  /// The refresh token itself is re-issued unchanged (rotation is optional).
   Future<TokenResponse> refresh(String refreshToken) async {
     final payload = await _jwtService.verifyRefreshToken(refreshToken);
     if (payload == null) {
@@ -32,6 +43,7 @@ class AuthService {
     final newAccessToken = _jwtService.generateAccessToken(
       claims: {
         'sub': payload['sub'],
+        'email': payload['email'] ?? '',
         'role': payload['role'] ?? 'user',
       },
     );
@@ -41,4 +53,12 @@ class AuthService {
       refreshToken: refreshToken,
     );
   }
+
+  /// Revokes [token] — it will be rejected by [authMiddleware] on all future
+  /// requests until the token naturally expires.
+  ///
+  /// The revoked JTI is stored in the [TokenStore] configured in main.dart.
+  /// Switch from [InMemoryTokenStore] to a Redis or database-backed store for
+  /// multi-instance deployments.
+  Future<void> logout(String token) => _jwtService.revokeToken(token);
 }

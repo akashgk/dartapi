@@ -6,6 +6,8 @@ abstract class UserRepository {
   Future<User?> findById(int id);
   Future<User?> findByEmail(String email);
   Future<User> create(User user);
+  Future<User?> update(int id, User user);
+  Future<bool> delete(int id);
 }
 
 /// In-memory repository — ships with the project for local dev and tests.
@@ -50,6 +52,30 @@ class InMemoryUserRepository implements UserRepository {
     _store.add(created);
     return created;
   }
+
+  @override
+  Future<User?> update(int id, User user) async {
+    for (var i = 0; i < _store.length; i++) {
+      if (_store[i].id == id) {
+        final updated = User(
+          id: id,
+          name: user.name,
+          age: user.age,
+          email: user.email,
+        );
+        _store[i] = updated;
+        return updated;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Future<bool> delete(int id) async {
+    final before = _store.length;
+    _store.removeWhere((u) => u.id == id);
+    return _store.length < before;
+  }
 }
 
 /// PostgreSQL-backed repository. Used in production via [main.dart].
@@ -84,5 +110,21 @@ class DbUserRepository implements UserRepository {
       'email': user.email,
     });
     return User.fromRow(result.rows.first);
+  }
+
+  @override
+  Future<User?> update(int id, User user) async {
+    final result = await _db.update(
+      'users',
+      {'name': user.name, 'age': user.age, 'email': user.email},
+      where: {'id': id},
+    );
+    return result.isEmpty ? null : User.fromRow(result.rows.first);
+  }
+
+  @override
+  Future<bool> delete(int id) async {
+    final result = await _db.delete('users', where: {'id': id});
+    return (result.affectedRows ?? 0) > 0;
   }
 }

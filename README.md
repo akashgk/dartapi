@@ -55,6 +55,39 @@ Starts the server and watches for input:
 dartapi run --port=8080
 ```
 
+### `dartapi run --isolates=N`
+
+Spawns N Dart isolates all bound to the same port. The OS load-balances incoming connections across all isolates, utilising every CPU core — the Dart equivalent of Go's goroutine pool.
+
+```bash
+dartapi run --isolates=4         # 4 isolates, one per core
+```
+
+Each isolate builds its own database connections and handlers — no shared mutable state.
+
+### `dartapi build`
+
+AOT-compiles the project to a self-contained native binary via `dart compile exe`. No VM startup cost; single binary deployment like a Go application.
+
+```bash
+dartapi build                    # produces ./server
+dartapi build --output=myapp     # custom binary name
+dartapi build --docker           # also writes a Dockerfile
+```
+
+Run the binary:
+```bash
+./server --port=8080
+```
+
+The `--docker` flag writes a two-stage `Dockerfile`: compiles in a `dart:stable` builder image, copies only the binary into a minimal `debian:bookworm-slim` runtime image.
+
+```bash
+dartapi build --docker
+docker build -t my-app .
+docker run -p 8080:8080 my-app
+```
+
 ### `dartapi docs [--port=<port>] [--out=<file>]`
 
 Exports the OpenAPI spec from a running server:

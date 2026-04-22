@@ -17,7 +17,20 @@ class UserService {
     return user;
   }
 
-  Future<User> createUser(UserDTO dto) => _repo.create(
-        User(name: dto.name, age: dto.age, email: dto.email),
-      );
+  Future<User> createUser(UserDTO dto) =>
+      _repo.create(User(name: dto.name, age: dto.age, email: dto.email));
+
+  Future<User> updateUser(int id, UserDTO dto) async {
+    final updated = await _repo.update(
+      id,
+      User(id: id, name: dto.name, age: dto.age, email: dto.email),
+    );
+    if (updated == null) throw const ApiException(404, 'User not found');
+    return updated;
+  }
+
+  Future<void> deleteUser(int id) async {
+    final deleted = await _repo.delete(id);
+    if (!deleted) throw const ApiException(404, 'User not found');
+  }
 }

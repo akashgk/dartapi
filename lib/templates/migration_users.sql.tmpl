@@ -1,0 +1,14 @@
+-- Migration: create users table
+-- Applied automatically on startup via MigrationRunner.
+
+CREATE TABLE IF NOT EXISTS users (
+  id         SERIAL          PRIMARY KEY,
+  name       VARCHAR(255)    NOT NULL,
+  age        INTEGER         NOT NULL CHECK (age >= 0),
+  email      VARCHAR(255)    NOT NULL,
+  created_at TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+  CONSTRAINT users_email_unique UNIQUE (email)
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);

@@ -16,25 +16,48 @@ class UserController extends BaseController {
         _jwtService = jwtService;
 
   @override
-  List<ApiRoute> get routes => [_listApi(), _getApi(), _createApi()];
+  List<ApiRoute> get routes => [
+        _listApi(),
+        _getApi(),
+        _createApi(),
+        _updateApi(),
+        _deleteApi(),
+      ];
 
-  ApiRoute<void, List<User>> _listApi() => ApiRoute(
+  // ── Route definitions ──────────────────────────────────────────────────────
+
+  ApiRoute<void, Map<String, dynamic>> _listApi() => ApiRoute(
         method: ApiMethod.get,
         path: '/users',
         typedHandler: _list,
         middlewares: [authMiddleware(_jwtService)],
         summary: 'List users',
         description:
-            'Returns a paginated list of users. Supports ?page and ?limit.',
+            'Returns a paginated list of users. '
+            'Supports `?page` (default 1) and `?limit` (default 20, max 100).',
+        security: [SecurityScheme.bearer],
         responseSchema: {
-          'type': 'array',
-          'items': {
-            'type': 'object',
-            'properties': {
-              'id': {'type': 'integer'},
-              'name': {'type': 'string'},
-              'age': {'type': 'integer'},
-              'email': {'type': 'string'},
+          'type': 'object',
+          'properties': {
+            'data': {
+              'type': 'array',
+              'items': {
+                'type': 'object',
+                'properties': {
+                  'id': {'type': 'integer'},
+                  'name': {'type': 'string'},
+                  'age': {'type': 'integer'},
+                  'email': {'type': 'string', 'format': 'email'},
+                },
+              },
+            },
+            'meta': {
+              'type': 'object',
+              'properties': {
+                'page': {'type': 'integer'},
+                'limit': {'type': 'integer'},
+                'count': {'type': 'integer'},
+              },
             },
           },
         },
@@ -46,7 +69,8 @@ class UserController extends BaseController {
         typedHandler: _get,
         middlewares: [authMiddleware(_jwtService)],
         summary: 'Get user',
-        description: 'Returns a single user by ID.',
+        description: 'Returns a single user by ID. Throws 404 if not found.',
+        security: [SecurityScheme.bearer],
       );
 
   ApiRoute<UserDTO, User> _createApi() => ApiRoute(
@@ -57,18 +81,57 @@ class UserController extends BaseController {
         dtoParser: UserDTO.fromJson,
         middlewares: [authMiddleware(_jwtService)],
         summary: 'Create user',
-        description: 'Creates a new user.',
+        description:
+            'Creates a new user. All fields are validated — the response '
+            'includes the full list of validation errors when present.',
         requestSchema: UserDTO.schema,
+        security: [SecurityScheme.bearer],
       );
 
-  Future<List<User>> _list(Request req, void _) => _userService.getUsers(
-        page: req.queryParam<int>('page') ?? 1,
-        limit: req.queryParam<int>('limit') ?? 20,
+  ApiRoute<UserDTO, User> _updateApi() => ApiRoute(
+        method: ApiMethod.put,
+        path: '/users/<id>',
+        typedHandler: _update,
+        dtoParser: UserDTO.fromJson,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'Update user',
+        description: 'Replaces all fields of an existing user. Throws 404 if not found.',
+        requestSchema: UserDTO.schema,
+        security: [SecurityScheme.bearer],
       );
+
+  ApiRoute<void, void> _deleteApi() => ApiRoute(
+        method: ApiMethod.delete,
+        path: '/users/<id>',
+        statusCode: 204,
+        typedHandler: _delete,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'Delete user',
+        description: 'Permanently removes a user. Returns 204 on success.',
+        security: [SecurityScheme.bearer],
+      );
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> _list(Request req, void _) async {
+    final page = req.queryParam<int>('page') ?? 1;
+    final limit = (req.queryParam<int>('limit') ?? 20).clamp(1, 100);
+    final users = await _userService.getUsers(page: page, limit: limit);
+    return {
+      'data': users.map((u) => u.toJson()).toList(),
+      'meta': {'page': page, 'limit': limit, 'count': users.length},
+    };
+  }
 
   Future<User> _get(Request req, void _) =>
       _userService.getUser(req.pathParam<int>('id'));
 
   Future<User> _create(Request req, UserDTO? dto) =>
       _userService.createUser(dto!);
+
+  Future<User> _update(Request req, UserDTO? dto) =>
+      _userService.updateUser(req.pathParam<int>('id'), dto!);
+
+  Future<void> _delete(Request req, void _) =>
+      _userService.deleteUser(req.pathParam<int>('id'));
 }

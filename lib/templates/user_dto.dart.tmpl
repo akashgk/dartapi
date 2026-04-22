@@ -5,23 +5,44 @@ class UserDTO {
   final int age;
   final String email;
 
-  UserDTO({required this.name, required this.age, required this.email});
+  const UserDTO({required this.name, required this.age, required this.email});
 
-  factory UserDTO.fromJson(Map<String, dynamic> jsonData) {
+  factory UserDTO.fromJson(Map<String, dynamic> json) {
+    // validateAll collects every field error before throwing, so the client
+    // receives the full list of problems in one response instead of one at a time.
+    json.validateAll({
+      'name': [NotEmptyValidator(), MaxLengthValidator(100)],
+      'email': [EmailValidator()],
+      'age': [RangeValidator<int>(min: 0, max: 150)],
+    });
+
     return UserDTO(
-      name: jsonData.verifyKey<String>('name'),
-      age: jsonData.verifyKey<int>('age'),
-      email: jsonData.verifyKey<String>('email'),
+      name: json.verifyKey<String>('name'),
+      age: json.verifyKey<int>('age'),
+      email: json.verifyKey<String>('email'),
     );
   }
 
   static const schema = {
     'type': 'object',
+    'required': ['name', 'age', 'email'],
     'properties': {
-      'name': {'type': 'string'},
-      'email': {'type': 'string'}
+      'name': {
+        'type': 'string',
+        'maxLength': 100,
+        'example': 'Alice',
+      },
+      'age': {
+        'type': 'integer',
+        'minimum': 0,
+        'maximum': 150,
+        'example': 30,
+      },
+      'email': {
+        'type': 'string',
+        'format': 'email',
+        'example': 'alice@example.com',
+      },
     },
-    'required': ['name', 'email'],
-    'example': {'name': 'Christy', 'email': 'christy@example.com'}
   };
 }

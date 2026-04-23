@@ -1,3 +1,6 @@
+## 0.1.41
+- Bump generated `dartapi_core` dep to `^0.0.26` (fix: `/docs` and other small responses crash with "read method can only be called once" when compression middleware is active)
+
 ## 0.1.40
 - Add `NotificationsController` — `GET /notifications/stream` streams Server-Sent Events (SSE) via `sseResponse()`
 - Add `FilesController` — `POST /files/upload` (multipart) and `GET /files` with background post-upload task

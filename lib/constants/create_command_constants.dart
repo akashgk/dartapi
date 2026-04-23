@@ -46,6 +46,12 @@ class CreateCommandConstants {
       _load('auth_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/auth_controller.dart', v)),
       _load('user_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/user_controller.dart', v)),
       _load('product_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/product_controller.dart', v)),
+      _load('notifications_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/notifications_controller.dart', v)),
+      _load('files_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/files_controller.dart', v)),
+      _load('ws_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/ws_controller.dart', v)),
+      _load('stats_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/stats_controller.dart', v)),
+      // Bootstrap
+      _load('bootstrap.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/core/bootstrap.dart', v)),
       // Migrations
       _load('migration_users.sql.tmpl', vars).then((v) => MapEntry('$name/migrations/0001_create_users_table.sql', v)),
       _load('migration_products.sql.tmpl', vars).then((v) => MapEntry('$name/migrations/0002_create_products_table.sql', v)),

@@ -1,0 +1,96 @@
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:dartapi_core/dartapi_core.dart';
+import 'package:shelf/shelf.dart';
+
+/// Demonstrates multipart file upload handling.
+///
+/// Upload a file:
+/// ```
+/// curl -X POST http://localhost:8080/files/upload \
+///   -H "Authorization: Bearer <token>" \
+///   -F "file=@photo.jpg"
+/// ```
+class FilesController extends BaseController {
+  final JwtService _jwtService;
+
+  // In-memory store. Replace with S3 / GCS / local disk in production.
+  static final List<Map<String, dynamic>> _store = [];
+
+  FilesController({required JwtService jwtService})
+      : _jwtService = jwtService;
+
+  @override
+  List<ApiRoute> get routes => [_uploadApi(), _listApi()];
+
+  ApiRoute<void, Map<String, dynamic>> _uploadApi() => ApiRoute(
+        method: ApiMethod.post,
+        path: '/files/upload',
+        statusCode: 201,
+        typedHandler: _upload,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'Upload file(s)',
+        description:
+            'Accepts a `multipart/form-data` body. '
+            'Returns metadata for each uploaded file. '
+            'A background task fires after the response to simulate '
+            'async post-processing (virus scan, thumbnail generation, etc.).',
+        security: [SecurityScheme.bearer],
+      );
+
+  ApiRoute<void, Map<String, dynamic>> _listApi() => ApiRoute(
+        method: ApiMethod.get,
+        path: '/files',
+        typedHandler: _list,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'List uploaded files',
+        description: 'Returns paginated metadata for all uploaded files.',
+        security: [SecurityScheme.bearer],
+      );
+
+  Future<Map<String, dynamic>> _upload(Request req, void _) async {
+    if (!req.isMultipart) {
+      throw const ApiException(400, 'Expected multipart/form-data');
+    }
+
+    final parts = await req.multipartFiles();
+    final fileParts = parts.where((p) => p.isFile).toList();
+    if (fileParts.isEmpty) {
+      throw const ApiException(400, 'No file attached');
+    }
+
+    final records = <Map<String, dynamic>>[];
+    for (final part in fileParts) {
+      final record = <String, dynamic>{
+        'id': _store.length + records.length + 1,
+        'filename': part.filename ?? 'unnamed',
+        'size': part.bytes.length,
+        'contentType': part.contentType,
+        'uploadedAt': DateTime.now().toIso8601String(),
+      };
+      _store.add(record);
+      records.add(record);
+    }
+
+    // Fire-and-forget post-upload work after the 201 is delivered.
+    req.backgroundTasks.add(() async {
+      for (final r in records) {
+        // ignore: avoid_print
+        print('[bg] File stored: ${r['filename']} (${r['size']} bytes)');
+      }
+    });
+
+    return records.length == 1
+        ? records.first
+        : {'files': records, 'count': records.length};
+  }
+
+  Future<Map<String, dynamic>> _list(Request req, void _) async {
+    final page = req.queryParam<int>('page') ?? 1;
+    final limit = (req.queryParam<int>('limit') ?? 20).clamp(1, 100);
+    final offset = (page - 1) * limit;
+    return {
+      'data': _store.skip(offset).take(limit).toList(),
+      'meta': {'page': page, 'limit': limit, 'total': _store.length},
+    };
+  }
+}

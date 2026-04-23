@@ -1,40 +1,18 @@
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:dartapi_db/dartapi_db.dart';
 import 'package:{{projectName}}/src/config/app_config.dart';
 import 'package:{{projectName}}/src/config/env_loader.dart';
-import 'package:{{projectName}}/src/controllers/auth_controller.dart';
-import 'package:{{projectName}}/src/controllers/product_controller.dart';
-import 'package:{{projectName}}/src/controllers/user_controller.dart';
-import 'package:{{projectName}}/src/core/core.dart';
-import 'package:{{projectName}}/src/repositories/product_repository.dart';
-import 'package:{{projectName}}/src/repositories/user_repository.dart';
-import 'package:{{projectName}}/src/services/auth_service.dart';
-import 'package:{{projectName}}/src/services/product_service.dart';
-import 'package:{{projectName}}/src/services/user_service.dart';
-import 'package:dartapi_auth/dartapi_auth.dart';
-import 'package:dartapi_db/dartapi_db.dart';
+import 'package:{{projectName}}/src/core/bootstrap.dart';
 
-/// Entry point for additional isolates spawned by `dartapi run --isolates=N`.
-/// Each isolate independently builds the full application and binds to the
-/// shared port — the OS load-balances connections across all of them.
+/// Entry point for extra isolates spawned by `dartapi run --isolates=N`.
 Future<void> _isolateEntry(int port) => _startApp(port, shared: true);
 
 Future<void> main(List<String> args) async {
-  // ── Environment ────────────────────────────────────────────────────────────
-  final appEnv = Platform.environment['APP_ENV'] ?? 'dev';
+  final config = AppConfig(environment: _loadEnv());
+  config.validateForProduction();
 
-  // Load base .env then environment-specific override.
-  // Platform.environment always wins over file values.
-  final env = mergeEnv([
-    loadEnvFile('env/.env'),
-    loadEnvFile('env/.env.$appEnv'),
-  ]);
-
-  final config = AppConfig(environment: env);
-  config.validateForProduction(); // Warns if dev placeholder secrets are used.
-
-  // ── Port ───────────────────────────────────────────────────────────────────
   // Priority: --port flag > PORT env var > config default (8080)
   int port = config.port;
   for (var i = 0; i < args.length; i++) {
@@ -47,11 +25,9 @@ Future<void> main(List<String> args) async {
     }
   }
 
-  // ── Multi-core ─────────────────────────────────────────────────────────────
-  // Set ISOLATES=N (via `dartapi run --isolates=N`) to spawn N Dart isolates
-  // bound to the same port. Each gets its own event loop and DB connections.
+  // ISOLATES=N (or `dartapi run --isolates=N`) spawns N isolates on the same
+  // port. Each gets its own event loop and DB connections.
   final isolates = int.tryParse(Platform.environment['ISOLATES'] ?? '1') ?? 1;
-
   if (isolates > 1) {
     for (var i = 0; i < isolates - 1; i++) {
       await Isolate.spawn(_isolateEntry, port);
@@ -62,33 +38,12 @@ Future<void> main(List<String> args) async {
 }
 
 Future<void> _startApp(int port, {bool shared = false}) async {
-  final appEnv = Platform.environment['APP_ENV'] ?? 'dev';
-
-  final env = mergeEnv([
-    loadEnvFile('env/.env'),
-    loadEnvFile('env/.env.$appEnv'),
-  ]);
-
-  final config = AppConfig(environment: env);
-
-  if (config.debug) {
-    // ignore: avoid_print
-    print('[{{projectName}}] env      : $appEnv');
-    // ignore: avoid_print
-    print('[{{projectName}}] port     : $port');
-    // ignore: avoid_print
-    print('[{{projectName}}] db       : ${config.dbHost}:${config.dbPort}/${config.dbName}');
-    // ignore: avoid_print
-    print('[{{projectName}}] shared   : $shared');
-  }
+  final config = AppConfig(environment: _loadEnv());
 
   // ── Database (optional) ────────────────────────────────────────────────────
-  // DB_ENABLED=false (the dev default) → in-memory repositories, no DB needed.
-  // DB_ENABLED=true  → PostgreSQL; swap DbType.postgres for mysql/sqlite as needed.
+  // DB_ENABLED=false (the dev default) → in-memory repos, no DB needed.
+  // DB_ENABLED=true  → PostgreSQL; swap DbType.postgres for mysql/sqlite.
   DartApiDB? db;
-  late UserRepository userRepository;
-  late ProductRepository productRepository;
-
   if (config.dbEnabled) {
     db = await DatabaseFactory.create(DbConfig(
       type: DbType.postgres,
@@ -99,78 +54,30 @@ Future<void> _startApp(int port, {bool shared = false}) async {
       password: config.dbPassword,
       poolConfig: PoolConfig(maxConnections: config.dbPoolSize),
     ));
-    // Run all pending *.sql files in migrations/ on every startup.
-    // Already-applied migrations are tracked in _dartapi_migrations and skipped.
     await MigrationRunner(db).migrate();
-    userRepository = DbUserRepository(db);
-    productRepository = DbProductRepository(db);
-  } else {
-    userRepository = InMemoryUserRepository();
-    productRepository = InMemoryProductRepository();
   }
 
-  // ── Auth ───────────────────────────────────────────────────────────────────
-  // InMemoryTokenStore keeps revoked JTIs in-process.
-  // Replace with a Redis or database-backed store for multi-instance deployments
-  // or to survive server restarts.
-  final tokenStore = InMemoryTokenStore();
-
-  final jwtService = JwtService(
-    accessTokenSecret: config.jwtAccessSecret,
-    refreshTokenSecret: config.jwtRefreshSecret,
-    issuer: '{{projectName}}',
-    audience: '{{projectName}}-users',
-    tokenStore: tokenStore,
-  );
-
-  // ── Services ───────────────────────────────────────────────────────────────
-  final authService = AuthService(jwtService: jwtService);
-  final userService = UserService(repository: userRepository);
-  final productService = ProductService(repository: productRepository);
-
   // ── App ────────────────────────────────────────────────────────────────────
-  final app = DartAPI(
-    db: db,
-    jwtService: jwtService,
-    corsOrigin: config.corsOrigin,
-  );
+  final app = createApp(config, db: db);
 
-  // ── Middleware ─────────────────────────────────────────────────────────────
-  // requestIdMiddleware and globalExceptionMiddleware are always active.
-  // The methods below opt-in to additional production middleware.
-  app.enableCompression();                          // Gzip responses > 1 KB
-  app.enableBackgroundTasks();                      // async post-response work
-  app.enableTimeout(const Duration(seconds: 30));   // 408 on hung handlers
-  app.enableRateLimit(
-    maxRequests: 200,
-    window: const Duration(minutes: 1),
-    // Key by authenticated user ID when available; fall back to IP:
-    // keyExtractor: (req) => req.context['userId']?.toString() ?? req.headers['x-forwarded-for'] ?? 'unknown',
-  );
-
-  // ── Controllers ────────────────────────────────────────────────────────────
-  app.addControllers([
-    AuthController(authService: authService, jwtService: jwtService),
-    UserController(userService: userService, jwtService: jwtService),
-    ProductController(productService: productService, jwtService: jwtService),
-  ]);
-
-  // ── Built-in endpoints ─────────────────────────────────────────────────────
-  app.enableHealthCheck();                                   // GET /health
-  app.enableMetrics();                                       // GET /metrics
-  app.enableDocs(title: '{{projectName}}', version: '1.0.0'); // GET /docs
-
-  // ── Hooks ──────────────────────────────────────────────────────────────────
-  app.onStartup(() async {
+  if (config.debug) {
     // ignore: avoid_print
-    if (config.debug) print('[{{projectName}}] Startup complete.');
-  });
+    print('[{{projectName}}] env: ${Platform.environment['APP_ENV'] ?? 'dev'} | port: $port | db: ${config.dbEnabled} | shared: $shared');
+  }
 
   app.onShutdown(() async {
     // ignore: avoid_print
-    if (config.debug) print('[{{projectName}}] Closing database pool...');
+    if (config.debug) print('[{{projectName}}] Shutting down...');
     await db?.close();
   });
 
   await app.start(port: port, shared: shared);
+}
+
+Map<String, String> _loadEnv() {
+  final appEnv = Platform.environment['APP_ENV'] ?? 'dev';
+  return mergeEnv([
+    loadEnvFile('env/.env'),
+    loadEnvFile('env/.env.$appEnv'),
+  ]);
 }

@@ -1,3 +1,12 @@
+## 0.1.40
+- Add `NotificationsController` — `GET /notifications/stream` streams Server-Sent Events (SSE) via `sseResponse()`
+- Add `FilesController` — `POST /files/upload` (multipart) and `GET /files` with background post-upload task
+- Add `WsController` — WebSocket echo-chat at `/ws/chat` with JWT auth via `webSocketRoutes`
+- Add `StatsController` — `GET /admin/stats` and `GET /admin/info` protected by `apiKeyMiddleware` (`X-Admin-Key` header)
+- Add `bootstrap.dart` — `createApp(AppConfig, {DartApiDB? db})` consolidates all wiring (JWT, token store, repos, services, middleware, controllers, built-in endpoints); generated `main.dart` is now ~60 lines
+- Simplify generated `main.dart`: only env loading, port/isolates parsing, optional DB connection, `createApp()` call, shutdown hook, and `app.start()`
+- Bump generated `dartapi_core` dep to `^0.0.25`
+
 ## 0.1.39
 - Generated project no longer crashes on `dartapi run` when no database is configured
 - Add `DB_ENABLED` env var (default `false` in dev, `true` in staging/production); when false the app starts with in-memory repositories — no PostgreSQL needed

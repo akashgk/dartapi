@@ -223,8 +223,28 @@ void main() {
       expect(fileMap['myapp/bin/main.dart'], contains('validateForProduction'));
     });
 
-    test('main.dart passes corsOrigin to DartAPI', () {
-      expect(fileMap['myapp/bin/main.dart'], contains('corsOrigin: config.corsOrigin'));
+    test('bootstrap.dart passes corsOrigin to DartAPI', () {
+      expect(
+        fileMap['myapp/lib/src/core/bootstrap.dart'],
+        contains('corsOrigin: config.corsOrigin'),
+      );
+    });
+
+    test('bootstrap.dart defines createApp function', () {
+      expect(
+        fileMap['myapp/lib/src/core/bootstrap.dart'],
+        contains('DartAPI createApp('),
+      );
+    });
+
+    test('all new controller files are generated', () {
+      expect(fileMap.keys, containsAll([
+        'myapp/lib/src/controllers/notifications_controller.dart',
+        'myapp/lib/src/controllers/files_controller.dart',
+        'myapp/lib/src/controllers/ws_controller.dart',
+        'myapp/lib/src/controllers/stats_controller.dart',
+        'myapp/lib/src/core/bootstrap.dart',
+      ]));
     });
   });
 }

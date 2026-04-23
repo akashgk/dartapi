@@ -1,0 +1,67 @@
+import 'dart:io';
+
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:dartapi_core/dartapi_core.dart';
+import 'package:shelf/shelf.dart';
+
+/// Admin-only endpoints protected by API key authentication.
+///
+/// Set the `ADMIN_API_KEY` environment variable to override the default.
+///
+/// ```
+/// curl http://localhost:8080/admin/stats \
+///   -H "X-Admin-Key: $ADMIN_API_KEY"
+/// ```
+class StatsController extends BaseController {
+  static final _startTime = DateTime.now();
+
+  static Set<String> get _adminKeys => {
+        Platform.environment['ADMIN_API_KEY'] ?? 'change-this-admin-key',
+      };
+
+  @override
+  List<ApiRoute> get routes => [_statsApi(), _infoApi()];
+
+  ApiRoute<void, Map<String, dynamic>> _statsApi() => ApiRoute(
+        method: ApiMethod.get,
+        path: '/admin/stats',
+        typedHandler: _stats,
+        middlewares: [
+          apiKeyMiddleware(validKeys: _adminKeys, headerName: 'X-Admin-Key'),
+        ],
+        summary: 'Runtime statistics',
+        description:
+            'Returns server uptime and PID. '
+            'Requires the `X-Admin-Key` request header.',
+      );
+
+  ApiRoute<void, Map<String, dynamic>> _infoApi() => ApiRoute(
+        method: ApiMethod.get,
+        path: '/admin/info',
+        typedHandler: _info,
+        middlewares: [
+          apiKeyMiddleware(validKeys: _adminKeys, headerName: 'X-Admin-Key'),
+        ],
+        summary: 'Server information',
+        description: 'Returns OS, Dart version, and hardware info.',
+      );
+
+  Future<Map<String, dynamic>> _stats(Request req, void _) async {
+    final uptime = DateTime.now().difference(_startTime);
+    return {
+      'uptime':
+          '${uptime.inHours}h ${uptime.inMinutes.remainder(60)}m ${uptime.inSeconds.remainder(60)}s',
+      'startedAt': _startTime.toIso8601String(),
+      'pid': pid,
+    };
+  }
+
+  Future<Map<String, dynamic>> _info(Request req, void _) async {
+    return {
+      'dart': Platform.version,
+      'os': Platform.operatingSystem,
+      'cpus': Platform.numberOfProcessors,
+      'locale': Platform.localeName,
+    };
+  }
+}

@@ -1,0 +1,52 @@
+import 'dart:convert';
+
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:dartapi_core/dartapi_core.dart';
+
+/// Demonstrates WebSocket bidirectional communication.
+///
+/// Connect from JavaScript:
+/// ```js
+/// const ws = new WebSocket('ws://localhost:8080/ws/chat');
+/// ws.onopen  = () => ws.send(JSON.stringify({ text: 'hello' }));
+/// ws.onmessage = e => console.log(JSON.parse(e.data));
+/// ```
+///
+/// Connect with wscat:
+/// ```
+/// wscat -c ws://localhost:8080/ws/chat \
+///   -H "Authorization: Bearer <token>"
+/// ```
+class WsController extends BaseController {
+  final JwtService _jwtService;
+
+  WsController({required JwtService jwtService}) : _jwtService = jwtService;
+
+  @override
+  List<ApiRoute> get routes => const [];
+
+  @override
+  List<WebSocketRoute> get webSocketRoutes => [
+        WebSocketRoute(
+          path: '/ws/chat',
+          middlewares: [authMiddleware(_jwtService)],
+          summary: 'Real-time chat (WebSocket)',
+          handler: (channel, _) async {
+            channel.sink.add(
+              jsonEncode({'type': 'connected', 'message': 'Welcome!'}),
+            );
+            await for (final message in channel.stream) {
+              try {
+                final payload =
+                    jsonDecode(message as String) as Map<String, dynamic>;
+                channel.sink.add(jsonEncode({'type': 'echo', 'data': payload}));
+              } catch (_) {
+                channel.sink.add(
+                  jsonEncode({'type': 'error', 'message': 'Expected JSON'}),
+                );
+              }
+            }
+          },
+        ),
+      ];
+}

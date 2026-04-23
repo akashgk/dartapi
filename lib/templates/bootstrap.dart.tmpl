@@ -1,0 +1,85 @@
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:dartapi_db/dartapi_db.dart';
+
+import 'package:{{projectName}}/src/config/app_config.dart';
+import 'package:{{projectName}}/src/controllers/auth_controller.dart';
+import 'package:{{projectName}}/src/controllers/files_controller.dart';
+import 'package:{{projectName}}/src/controllers/notifications_controller.dart';
+import 'package:{{projectName}}/src/controllers/product_controller.dart';
+import 'package:{{projectName}}/src/controllers/stats_controller.dart';
+import 'package:{{projectName}}/src/controllers/user_controller.dart';
+import 'package:{{projectName}}/src/controllers/ws_controller.dart';
+import 'package:{{projectName}}/src/core/dartapi.dart';
+import 'package:{{projectName}}/src/repositories/product_repository.dart';
+import 'package:{{projectName}}/src/repositories/user_repository.dart';
+import 'package:{{projectName}}/src/services/auth_service.dart';
+import 'package:{{projectName}}/src/services/product_service.dart';
+import 'package:{{projectName}}/src/services/user_service.dart';
+
+/// Wires up every dependency and returns a fully configured [DartAPI] instance.
+///
+/// Called from `bin/main.dart` after the DB connection (if any) is established.
+/// Keeping all wiring here means `main.dart` stays small and every component
+/// is testable in isolation by calling [createApp] directly in tests.
+DartAPI createApp(AppConfig config, {DartApiDB? db}) {
+  // ── Repositories ───────────────────────────────────────────────────────────
+  final UserRepository userRepo =
+      db != null ? DbUserRepository(db) : InMemoryUserRepository();
+  final ProductRepository productRepo =
+      db != null ? DbProductRepository(db) : InMemoryProductRepository();
+
+  // ── Auth ───────────────────────────────────────────────────────────────────
+  // InMemoryTokenStore keeps revoked JTIs in-process.
+  // Swap for a Redis-backed store in multi-instance or persistent deployments.
+  final tokenStore = InMemoryTokenStore();
+  final jwtService = JwtService(
+    accessTokenSecret: config.jwtAccessSecret,
+    refreshTokenSecret: config.jwtRefreshSecret,
+    issuer: '{{projectName}}',
+    audience: '{{projectName}}-users',
+    tokenStore: tokenStore,
+  );
+
+  // ── Services ───────────────────────────────────────────────────────────────
+  final authService = AuthService(jwtService: jwtService);
+  final userService = UserService(repository: userRepo);
+  final productService = ProductService(repository: productRepo);
+
+  // ── App ────────────────────────────────────────────────────────────────────
+  final app = DartAPI(
+    db: db,
+    jwtService: jwtService,
+    corsOrigin: config.corsOrigin,
+  );
+
+  // ── Middleware ─────────────────────────────────────────────────────────────
+  app.enableCompression();
+  app.enableBackgroundTasks();
+  app.enableTimeout(const Duration(seconds: 30));
+  app.enableRateLimit(
+    maxRequests: 200,
+    window: const Duration(minutes: 1),
+  );
+
+  // ── Controllers ────────────────────────────────────────────────────────────
+  app.addControllers([
+    // Core CRUD + auth
+    AuthController(authService: authService, jwtService: jwtService),
+    UserController(userService: userService, jwtService: jwtService),
+    ProductController(productService: productService, jwtService: jwtService),
+    // Streaming
+    NotificationsController(jwtService: jwtService), // GET /notifications/stream (SSE)
+    WsController(jwtService: jwtService),             // /ws/chat (WebSocket)
+    // File uploads
+    FilesController(jwtService: jwtService),          // POST /files/upload, GET /files
+    // Admin (API key auth)
+    StatsController(),                                // GET /admin/stats, GET /admin/info
+  ]);
+
+  // ── Built-in endpoints ─────────────────────────────────────────────────────
+  app.enableHealthCheck(); // GET /health
+  app.enableMetrics();     // GET /metrics (Prometheus)
+  app.enableDocs(title: '{{projectName}}', version: '1.0.0'); // GET /docs
+
+  return app;
+}

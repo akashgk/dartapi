@@ -1,0 +1,51 @@
+import 'dart:convert';
+
+import 'package:dartapi_auth/dartapi_auth.dart';
+import 'package:dartapi_core/dartapi_core.dart';
+import 'package:shelf/shelf.dart';
+
+/// Demonstrates Server-Sent Events (SSE).
+///
+/// Connect from JavaScript:
+/// ```js
+/// const es = new EventSource('/notifications/stream', {
+///   headers: { Authorization: 'Bearer <token>' },
+/// });
+/// es.addEventListener('ping', e => console.log(JSON.parse(e.data)));
+/// ```
+class NotificationsController extends BaseController {
+  final JwtService _jwtService;
+
+  NotificationsController({required JwtService jwtService})
+      : _jwtService = jwtService;
+
+  @override
+  List<ApiRoute> get routes => [_streamApi()];
+
+  ApiRoute<void, Response> _streamApi() => ApiRoute(
+        method: ApiMethod.get,
+        path: '/notifications/stream',
+        typedHandler: _stream,
+        middlewares: [authMiddleware(_jwtService)],
+        summary: 'Live notifications (SSE)',
+        description:
+            'Opens a persistent Server-Sent Event stream. '
+            'Emits a `ping` event every 5 seconds. '
+            'Replace the `Stream.periodic` with a real event source '
+            '(DB change feed, message broker, etc.) in production.',
+        security: [SecurityScheme.bearer],
+      );
+
+  Future<Response> _stream(Request req, void _) async {
+    final userId = req.context['userId']?.toString() ?? 'anonymous';
+    final stream = Stream.periodic(
+      const Duration(seconds: 5),
+      (i) => SseEvent(
+        data: jsonEncode({'type': 'ping', 'userId': userId, 'seq': i}),
+        event: 'ping',
+        id: '$i',
+      ),
+    );
+    return sseResponse(stream);
+  }
+}

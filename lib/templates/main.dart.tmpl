@@ -82,23 +82,32 @@ Future<void> _startApp(int port, {bool shared = false}) async {
     print('[{{projectName}}] shared   : $shared');
   }
 
-  // ── Database ───────────────────────────────────────────────────────────────
-  // Swap DbType.postgres for DbType.mysql or DbType.sqlite as needed.
-  // For quick local dev without a database, comment this out and use
-  // InMemory* repositories instead (no migrations needed).
-  final db = await DatabaseFactory.create(DbConfig(
-    type: DbType.postgres,
-    host: config.dbHost,
-    port: config.dbPort,
-    database: config.dbName,
-    username: config.dbUser,
-    password: config.dbPassword,
-    poolConfig: PoolConfig(maxConnections: config.dbPoolSize),
-  ));
+  // ── Database (optional) ────────────────────────────────────────────────────
+  // DB_ENABLED=false (the dev default) → in-memory repositories, no DB needed.
+  // DB_ENABLED=true  → PostgreSQL; swap DbType.postgres for mysql/sqlite as needed.
+  DartApiDB? db;
+  late UserRepository userRepository;
+  late ProductRepository productRepository;
 
-  // Run all pending *.sql files in migrations/ on every startup.
-  // Already-applied migrations are tracked in _dartapi_migrations and skipped.
-  await MigrationRunner(db).migrate();
+  if (config.dbEnabled) {
+    db = await DatabaseFactory.create(DbConfig(
+      type: DbType.postgres,
+      host: config.dbHost,
+      port: config.dbPort,
+      database: config.dbName,
+      username: config.dbUser,
+      password: config.dbPassword,
+      poolConfig: PoolConfig(maxConnections: config.dbPoolSize),
+    ));
+    // Run all pending *.sql files in migrations/ on every startup.
+    // Already-applied migrations are tracked in _dartapi_migrations and skipped.
+    await MigrationRunner(db).migrate();
+    userRepository = DbUserRepository(db);
+    productRepository = DbProductRepository(db);
+  } else {
+    userRepository = InMemoryUserRepository();
+    productRepository = InMemoryProductRepository();
+  }
 
   // ── Auth ───────────────────────────────────────────────────────────────────
   // InMemoryTokenStore keeps revoked JTIs in-process.
@@ -113,11 +122,6 @@ Future<void> _startApp(int port, {bool shared = false}) async {
     audience: '{{projectName}}-users',
     tokenStore: tokenStore,
   );
-
-  // ── Repositories ───────────────────────────────────────────────────────────
-  // Swap Db* for InMemory* to develop locally without a database.
-  final userRepository = DbUserRepository(db);
-  final productRepository = DbProductRepository(db);
 
   // ── Services ───────────────────────────────────────────────────────────────
   final authService = AuthService(jwtService: jwtService);
@@ -165,7 +169,7 @@ Future<void> _startApp(int port, {bool shared = false}) async {
   app.onShutdown(() async {
     // ignore: avoid_print
     if (config.debug) print('[{{projectName}}] Closing database pool...');
-    await db.close();
+    await db?.close();
   });
 
   await app.start(port: port, shared: shared);

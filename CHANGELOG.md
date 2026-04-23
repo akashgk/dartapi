@@ -1,3 +1,10 @@
+## 0.1.39
+- Generated project no longer crashes on `dartapi run` when no database is configured
+- Add `DB_ENABLED` env var (default `false` in dev, `true` in staging/production); when false the app starts with in-memory repositories — no PostgreSQL needed
+- Generated `main.dart` conditionally creates DB connection and runs migrations only when `DB_ENABLED=true`; falls back to `InMemoryUserRepository` / `InMemoryProductRepository` otherwise
+- `app.onShutdown` uses `db?.close()` (db is now nullable)
+- `AppConfig.dbEnabled` getter reads `DB_ENABLED`
+
 ## 0.1.38
 - Fix generated `bin/main.dart`: `MigrationRunner(db).run()` → `.migrate()` (correct method name)
 - Fix generated `bin/main.dart`: add `// ignore: avoid_print` on all startup debug `print` calls

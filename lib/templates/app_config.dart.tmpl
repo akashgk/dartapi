@@ -57,6 +57,10 @@ class AppConfig extends EnvConfig {
 
   // ── Database ─────────────────────────────────────────────────────────────
 
+  /// When false the app starts with in-memory repositories — no DB required.
+  /// Set DB_ENABLED=true once a real database is available.
+  bool get dbEnabled => envBool('DB_ENABLED', defaultValue: false);
+
   String get dbHost => env('DB_HOST', defaultValue: 'localhost');
   int get dbPort => envInt('DB_PORT', defaultValue: 5432);
   String get dbName =>

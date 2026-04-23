@@ -1,3 +1,9 @@
+## 0.1.42
+- Upgrade `lints` from `^5.1.1` to `^6.1.0`
+- Bump generated deps to latest: `dartapi_auth ^0.0.10`, `dartapi_core ^0.0.27`, `dartapi_db ^0.0.12`, `shelf ^1.4.2`, `shelf_router ^1.1.4`, `test ^1.24.0`, `lints ^6.1.0`
+- Add `shelf_web_socket ^3.0.0` and `web_socket_channel ^3.0.3` to generated `pubspec.yaml` (required by WebSocket controller)
+- Tighten generated SDK constraint to `^3.7.0`
+
 ## 0.1.41
 - Bump generated `dartapi_core` dep to `^0.0.26` (fix: `/docs` and other small responses crash with "read method can only be called once" when compression middleware is active)
 

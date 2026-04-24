@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:dartapi_core/dartapi_core.dart';
-import 'package:dartapi_core/dartapi_core.dart';
 
 /// Demonstrates WebSocket bidirectional communication.
 ///
@@ -18,9 +17,9 @@ import 'package:dartapi_core/dartapi_core.dart';
 ///   -H "Authorization: Bearer <token>"
 /// ```
 class WsController extends BaseController {
-  final JwtService _jwtService;
+  final JwtService? _jwtService;
 
-  WsController({required JwtService jwtService}) : _jwtService = jwtService;
+  WsController({JwtService? jwtService}) : _jwtService = jwtService;
 
   @override
   List<ApiRoute> get routes => const [];
@@ -29,7 +28,7 @@ class WsController extends BaseController {
   List<WebSocketRoute> get webSocketRoutes => [
         WebSocketRoute(
           path: '/ws/chat',
-          middlewares: [authMiddleware(_jwtService)],
+          middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
           summary: 'Real-time chat (WebSocket)',
           handler: (channel, _) async {
             channel.sink.add(

@@ -1,3 +1,21 @@
+## 0.1.45
+- Add `--minimal` (default), `--full`, and `--with=<features>` flags to `dartapi create`
+  - `dartapi create my_app` — minimal scaffold: hello controller + bare server, one dep (`dartapi_core`)
+  - `dartapi create my_app --full` — full kitchen-sink scaffold (current default behaviour)
+  - `dartapi create my_app --with=auth` — minimal + JWT auth wiring
+  - `dartapi create my_app --with=db` — minimal + database CRUD (user/product repositories, migrations)
+  - `dartapi create my_app --with=auth,db` — minimal + both; JwtService wired into user/product controllers
+  - `dartapi create my_app --with=files` — minimal + file upload controller
+  - `dartapi create my_app --with=ws` — minimal + WebSocket echo controller
+  - `--with=` features are composable: `--with=auth,db,files,ws` equals `--full` without stats/notifications
+- Add `Feature` enum (`auth`, `db`, `files`, `ws`) and `kAllFeatures` constant
+- Refactor `CreateCommandConstants.directories()` and `.files()` to accept `{Set<Feature> features, bool full}`
+- Add `hello_controller.dart.tmpl` — single `GET /hello` endpoint used by the minimal scaffold
+- Add `readme_minimal.md.tmpl` — short README for minimal projects
+- Make `JwtService` optional (`JwtService?`) in `UserController`, `ProductController`, `FilesController`, and `WsController` templates — auth middleware only applied when a `JwtService` is provided
+- `pubspec.yaml` for generated projects is now built programmatically based on features (no template duplication)
+- 119 tests passing (30 new tests across all `--with=` combinations and cross-mode invariants)
+
 ## 0.1.44
 - Replace `dartapi_auth` with `dartapi_core ^0.1.1` in generated `pubspec.yaml` — auth is now part of `dartapi_core`
 - Update all generated template imports from `package:dartapi_auth/dartapi_auth.dart` to `package:dartapi_core/dartapi_core.dart`

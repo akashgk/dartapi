@@ -1,0 +1,62 @@
+# {{projectName}}
+
+A DartAPI server.
+
+## Run
+
+```bash
+dartapi run
+dartapi run --port=8080
+dartapi run --env=staging --watch
+```
+
+## Endpoints
+
+| Method | Path     | Description              |
+|--------|----------|--------------------------|
+| GET    | /health  | Health check             |
+| GET    | /hello   | Greeting from the server |
+
+## Add features
+
+Regenerate with additional features using the CLI:
+
+```bash
+# Auth (JWT)
+dartapi create {{projectName}} --with=auth
+
+# Database (PostgreSQL CRUD)
+dartapi create {{projectName}} --with=db
+
+# Both
+dartapi create {{projectName}} --with=auth,db
+
+# Everything (auth, db, files, websockets, metrics)
+dartapi create {{projectName}} --full
+```
+
+Or generate individual components:
+
+```bash
+dartapi generate controller MyThing
+dartapi generate resource Product
+dartapi generate migration add_orders_table
+```
+
+## Project structure
+
+```
+bin/
+  main.dart              Entry point
+lib/src/
+  config/
+    app_config.dart      Typed environment config
+    env_loader.dart      .env file loader
+  controllers/
+    hello_controller.dart  Example GET /hello
+  core/
+    dartapi.dart           DartAPI re-export
+env/
+  .env.dev               Development environment variables
+  .env.example           Template (committed)
+```

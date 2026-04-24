@@ -1,16 +1,15 @@
 import 'package:shelf/shelf.dart';
 import 'package:dartapi_core/dartapi_core.dart';
-import 'package:dartapi_core/dartapi_core.dart';
 import 'package:{{projectName}}/src/dto/product_dto.dart';
 import 'package:{{projectName}}/src/services/product_service.dart';
 
 class ProductController extends BaseController {
   final ProductService _productService;
-  final JwtService _jwtService;
+  final JwtService? _jwtService;
 
   ProductController({
     required ProductService productService,
-    required JwtService jwtService,
+    JwtService? jwtService,
   })  : _productService = productService,
         _jwtService = jwtService;
 
@@ -29,7 +28,7 @@ class ProductController extends BaseController {
         method: ApiMethod.get,
         path: '/products',
         typedHandler: _list,
-        middlewares: [authMiddleware(_jwtService)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
         // Cache the product list for 5 minutes. Individual create/update/delete
         // requests will bypass the cache automatically (only GET is cached).
         cacheTtl: const Duration(minutes: 5),
@@ -37,7 +36,7 @@ class ProductController extends BaseController {
         description:
             'Returns a paginated list of products. '
             'Response is cached for 5 minutes; look for `X-Cache: HIT/MISS`.',
-        security: [SecurityScheme.bearer],
+        security: _jwtService != null ? [SecurityScheme.bearer] : [],
         responseSchema: {
           'type': 'object',
           'properties': {
@@ -58,11 +57,11 @@ class ProductController extends BaseController {
         method: ApiMethod.get,
         path: '/products/<id>',
         typedHandler: _get,
-        middlewares: [authMiddleware(_jwtService)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
         summary: 'Get product',
         description: 'Returns a single product by ID.',
         responseSchema: ProductDto.schema,
-        security: [SecurityScheme.bearer],
+        security: _jwtService != null ? [SecurityScheme.bearer] : [],
       );
 
   ApiRoute<ProductDto, ProductDto> _createApi() => ApiRoute(
@@ -71,14 +70,14 @@ class ProductController extends BaseController {
         statusCode: 201,
         typedHandler: _create,
         dtoParser: ProductDto.fromJson,
-        middlewares: [authMiddleware(_jwtService)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
         summary: 'Create product',
         description:
             'Adds a new product. A background task fires after the response '
             'is sent — replace the placeholder with real notification logic.',
         requestSchema: ProductDto.schema,
         responseSchema: ProductDto.schema,
-        security: [SecurityScheme.bearer],
+        security: _jwtService != null ? [SecurityScheme.bearer] : [],
       );
 
   ApiRoute<ProductDto, ProductDto> _updateApi() => ApiRoute(
@@ -86,12 +85,12 @@ class ProductController extends BaseController {
         path: '/products/<id>',
         typedHandler: _update,
         dtoParser: ProductDto.fromJson,
-        middlewares: [authMiddleware(_jwtService)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
         summary: 'Update product',
         description: 'Replaces all fields of an existing product.',
         requestSchema: ProductDto.schema,
         responseSchema: ProductDto.schema,
-        security: [SecurityScheme.bearer],
+        security: _jwtService != null ? [SecurityScheme.bearer] : [],
       );
 
   ApiRoute<void, void> _deleteApi() => ApiRoute(
@@ -99,10 +98,10 @@ class ProductController extends BaseController {
         path: '/products/<id>',
         statusCode: 204,
         typedHandler: _delete,
-        middlewares: [authMiddleware(_jwtService)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
         summary: 'Delete product',
         description: 'Removes a product by ID.',
-        security: [SecurityScheme.bearer],
+        security: _jwtService != null ? [SecurityScheme.bearer] : [],
       );
 
   // ── Handlers ───────────────────────────────────────────────────────────────

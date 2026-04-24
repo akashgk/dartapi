@@ -1,0 +1,23 @@
+import 'package:dartapi_core/dartapi_core.dart';
+
+/// The default controller generated for every new project.
+///
+/// It demonstrates the minimal anatomy of a [BaseController]:
+/// implement `get routes` and return a list of [ApiRoute]s.
+///
+/// Replace or extend this with your own controllers once you have verified
+/// the server starts correctly.
+class HelloController extends BaseController {
+  @override
+  List<ApiRoute> get routes => [
+        ApiRoute.get(
+          path: '/hello',
+          summary: 'Say hello',
+          description: 'Returns a greeting from {{projectName}}.',
+          handler: (req, _) async => {
+            'message': 'Hello from {{projectName}}!',
+            'version': '1.0.0',
+          },
+        ),
+      ];
+}

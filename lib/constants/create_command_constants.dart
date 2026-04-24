@@ -26,7 +26,6 @@ class CreateCommandConstants {
       _load('env_loader.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/config/env_loader.dart', v)),
       // Core
       _load('dartapi.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/core/dartapi.dart', v)),
-      _load('router.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/core/router.dart', v)),
       _load('core.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/core/core.dart', v)),
       // Models
       _load('token_response.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/models/token_response.dart', v)),

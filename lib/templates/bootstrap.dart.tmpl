@@ -47,9 +47,8 @@ DartAPI createApp(AppConfig config, {DartApiDB? db}) {
 
   // ── App ────────────────────────────────────────────────────────────────────
   final app = DartAPI(
-    db: db,
-    jwtService: jwtService,
     corsOrigin: config.corsOrigin,
+    appName: '{{projectName}}',
   );
 
   // ── Middleware ─────────────────────────────────────────────────────────────

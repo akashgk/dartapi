@@ -1,3 +1,10 @@
+## 0.1.43
+- Update templates to import `DartAPI`, `RouterManager`, `AppConfig`, `loadEnvFile`, and `mergeEnv` from `dartapi_core ^0.1.0` instead of generating them as project files
+- Remove `router.dart` generation — `RouterManager` is now in `dartapi_core`
+- Generated `AppConfig` extends `core.AppConfig` (only overrides `dbName` with the project name)
+- Generated `env_loader.dart` re-exports `loadEnvFile`/`mergeEnv` from `dartapi_core`
+- Remove `shelf_cors_headers` and `shelf_router` from generated `pubspec.yaml` (now transitive via `dartapi_core`)
+
 ## 0.1.42
 - Upgrade `lints` from `^5.1.1` to `^6.1.0`
 - Bump generated deps to latest: `dartapi_auth ^0.0.10`, `dartapi_core ^0.0.27`, `dartapi_db ^0.0.12`, `shelf ^1.4.2`, `shelf_router ^1.1.4`, `test ^1.24.0`, `lints ^6.1.0`

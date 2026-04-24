@@ -1,3 +1,7 @@
+## 0.1.44
+- Replace `dartapi_auth` with `dartapi_core ^0.1.1` in generated `pubspec.yaml` — auth is now part of `dartapi_core`
+- Update all generated template imports from `package:dartapi_auth/dartapi_auth.dart` to `package:dartapi_core/dartapi_core.dart`
+
 ## 0.1.43
 - Update templates to import `DartAPI`, `RouterManager`, `AppConfig`, `loadEnvFile`, and `mergeEnv` from `dartapi_core ^0.1.0` instead of generating them as project files
 - Remove `router.dart` generation — `RouterManager` is now in `dartapi_core`

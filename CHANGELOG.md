@@ -1,3 +1,7 @@
+## 0.1.46
+- Bump generated `dartapi_core` dep to `^0.1.2` (adds `ServiceRegistry` DI container)
+- Update `bootstrap.dart.tmpl` to use the registry pattern: `app.register<T>()`, `app.registerSingleton<T>()`, `app.get<T>()` replace manual constructor threading
+
 ## 0.1.45
 - Add `--minimal` (default), `--full`, and `--with=<features>` flags to `dartapi create`
   - `dartapi create my_app` — minimal scaffold: hello controller + bare server, one dep (`dartapi_core`)

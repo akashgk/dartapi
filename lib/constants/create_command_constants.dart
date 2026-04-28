@@ -232,8 +232,10 @@ class CreateCommandConstants {
     buf.writeln("import 'package:dartapi_core/dartapi_core.dart';");
     if (hasDb) buf.writeln("import 'package:dartapi_db/dartapi_db.dart';");
     buf.writeln();
-    buf.writeln("import 'package:$name/src/config/app_config.dart';");
-    buf.writeln("import 'package:$name/src/config/env_loader.dart';");
+    if (hasAny) {
+      buf.writeln("import 'package:$name/src/config/app_config.dart';");
+      buf.writeln("import 'package:$name/src/config/env_loader.dart';");
+    }
     buf.writeln("import 'package:$name/src/controllers/hello_controller.dart';");
     if (hasAuth) {
       buf.writeln("import 'package:$name/src/controllers/auth_controller.dart';");
@@ -384,6 +386,7 @@ class CreateCommandConstants {
     buf.writeln();
     buf.writeln('dependencies:');
     buf.writeln('  dartapi_core: ^0.1.2');
+    buf.writeln('  shelf: ^1.4.2');
     if (features.contains(Feature.db)) {
       buf.writeln('  dartapi_db: ^0.0.12');
     }

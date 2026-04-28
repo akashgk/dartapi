@@ -1,4 +1,3 @@
-import 'package:shelf/shelf.dart';
 import 'package:dartapi_core/dartapi_core.dart';
 import 'package:{{projectName}}/src/dto/product_dto.dart';
 import 'package:{{projectName}}/src/services/product_service.dart';
@@ -28,7 +27,7 @@ class ProductController extends BaseController {
         method: ApiMethod.get,
         path: '/products',
         typedHandler: _list,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         // Cache the product list for 5 minutes. Individual create/update/delete
         // requests will bypass the cache automatically (only GET is cached).
         cacheTtl: const Duration(minutes: 5),
@@ -57,7 +56,7 @@ class ProductController extends BaseController {
         method: ApiMethod.get,
         path: '/products/<id>',
         typedHandler: _get,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'Get product',
         description: 'Returns a single product by ID.',
         responseSchema: ProductDto.schema,
@@ -70,7 +69,7 @@ class ProductController extends BaseController {
         statusCode: 201,
         typedHandler: _create,
         dtoParser: ProductDto.fromJson,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'Create product',
         description:
             'Adds a new product. A background task fires after the response '
@@ -85,7 +84,7 @@ class ProductController extends BaseController {
         path: '/products/<id>',
         typedHandler: _update,
         dtoParser: ProductDto.fromJson,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'Update product',
         description: 'Replaces all fields of an existing product.',
         requestSchema: ProductDto.schema,
@@ -98,7 +97,7 @@ class ProductController extends BaseController {
         path: '/products/<id>',
         statusCode: 204,
         typedHandler: _delete,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'Delete product',
         description: 'Removes a product by ID.',
         security: _jwtService != null ? [SecurityScheme.bearer] : [],

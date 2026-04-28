@@ -10,11 +10,12 @@ import 'package:dartapi_core/dartapi_core.dart';
 class HelloController extends BaseController {
   @override
   List<ApiRoute> get routes => [
-        ApiRoute.get(
+        ApiRoute(
+          method: ApiMethod.get,
           path: '/hello',
           summary: 'Say hello',
           description: 'Returns a greeting from {{projectName}}.',
-          handler: (req, _) async => {
+          typedHandler: (req, _) async => {
             'message': 'Hello from {{projectName}}!',
             'version': '1.0.0',
           },

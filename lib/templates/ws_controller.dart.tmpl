@@ -28,7 +28,7 @@ class WsController extends BaseController {
   List<WebSocketRoute> get webSocketRoutes => [
         WebSocketRoute(
           path: '/ws/chat',
-          middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+          middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
           summary: 'Real-time chat (WebSocket)',
           handler: (channel, _) async {
             channel.sink.add(

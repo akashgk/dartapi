@@ -1,3 +1,12 @@
+## 0.1.47
+- Fix generated `hello_controller.dart`: replace non-existent `ApiRoute.get()` factory with `ApiRoute(method: ApiMethod.get, typedHandler:)`
+- Fix `bootstrap.dart` ambiguous `AppConfig` import: hide `AppConfig` from `dartapi_core` so the project's own subclass takes precedence
+- Remove duplicate `dartapi_core` imports in `auth_controller`, `notifications_controller`, `stats_controller`, `auth_service`, `auth_service_test` templates
+- Fix `UploadedFile.readBytes()` call in `files_controller`: use `.bytes` property instead
+- Remove unnecessary `!` null-assertion on `_jwtService` inside guarded `if (_jwtService != null)` checks across `files_controller`, `user_controller`, `product_controller`, `ws_controller`
+- Remove stray `package:shelf/shelf.dart` imports from controller templates; add `shelf: ^1.4.2` as a direct dependency in the generated `pubspec.yaml`
+- Add `dart pub get` after project scaffold in `dartapi create`
+
 ## 0.1.46
 - Bump generated `dartapi_core` dep to `^0.1.2` (adds `ServiceRegistry` DI container)
 - Update `bootstrap.dart.tmpl` to use the registry pattern: `app.register<T>()`, `app.registerSingleton<T>()`, `app.get<T>()` replace manual constructor threading

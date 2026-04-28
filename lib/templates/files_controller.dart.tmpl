@@ -1,5 +1,4 @@
 import 'package:dartapi_core/dartapi_core.dart';
-import 'package:shelf/shelf.dart';
 
 /// Demonstrates multipart file upload handling.
 ///
@@ -24,7 +23,7 @@ class FilesController extends BaseController {
         method: ApiMethod.post,
         path: '/files/upload',
         typedHandler: _upload,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'Upload a file (multipart/form-data)',
         description:
             'Accepts a single `file` field. '
@@ -36,7 +35,7 @@ class FilesController extends BaseController {
         method: ApiMethod.get,
         path: '/files',
         typedHandler: _list,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'List uploaded files',
         security: _jwtService != null ? [SecurityScheme.bearer] : [],
       );
@@ -49,7 +48,7 @@ class FilesController extends BaseController {
     final file = await req.file('file');
     if (file == null) throw const ApiException(400, 'Missing "file" field');
 
-    final bytes = await file.readBytes();
+    final bytes = file.bytes;
     final meta = {
       'id': _store.length + 1,
       'filename': file.filename ?? 'unknown',

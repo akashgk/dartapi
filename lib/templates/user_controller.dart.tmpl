@@ -1,4 +1,3 @@
-import 'package:shelf/shelf.dart';
 import 'package:dartapi_core/dartapi_core.dart';
 import 'package:{{projectName}}/src/dto/user_dto.dart';
 import 'package:{{projectName}}/src/models/user.dart';
@@ -29,7 +28,7 @@ class UserController extends BaseController {
         method: ApiMethod.get,
         path: '/users',
         typedHandler: _list,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'List users',
         description:
             'Returns a paginated list of users. '
@@ -66,7 +65,7 @@ class UserController extends BaseController {
         method: ApiMethod.get,
         path: '/users/<id>',
         typedHandler: _get,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'Get user',
         description: 'Returns a single user by ID. Throws 404 if not found.',
         security: _jwtService != null ? [SecurityScheme.bearer] : [],
@@ -78,7 +77,7 @@ class UserController extends BaseController {
         statusCode: 201,
         typedHandler: _create,
         dtoParser: UserDTO.fromJson,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'Create user',
         description:
             'Creates a new user. All fields are validated — the response '
@@ -92,7 +91,7 @@ class UserController extends BaseController {
         path: '/users/<id>',
         typedHandler: _update,
         dtoParser: UserDTO.fromJson,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'Update user',
         description: 'Replaces all fields of an existing user. Throws 404 if not found.',
         requestSchema: UserDTO.schema,
@@ -104,7 +103,7 @@ class UserController extends BaseController {
         path: '/users/<id>',
         statusCode: 204,
         typedHandler: _delete,
-        middlewares: [if (_jwtService != null) authMiddleware(_jwtService!)],
+        middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'Delete user',
         description: 'Permanently removes a user. Returns 204 on success.',
         security: _jwtService != null ? [SecurityScheme.bearer] : [],

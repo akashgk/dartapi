@@ -1,6 +1,21 @@
 import 'package:dartapi_core/dartapi_core.dart';
 
 class ProductDto implements Serializable {
+  static final fields = FieldSet({
+    'name': Field<String>(
+      validators: [NotEmptyValidator()],
+      example: 'Keyboard',
+    ),
+    'price': Field<double>(
+      validators: [RangeValidator<double>(min: 0)],
+      example: 29.99,
+    ),
+    'quantity': Field<int>(
+      validators: [RangeValidator<int>(min: 0)],
+      example: 15,
+    ),
+  });
+
   final int? id;
   final String name;
   final double price;
@@ -14,10 +29,11 @@ class ProductDto implements Serializable {
   });
 
   factory ProductDto.fromJson(Map<String, dynamic> json) {
+    fields.validate(json);
     return ProductDto(
-      name: json.verifyKey<String>('name'),
-      price: json.verifyKey<num>('price').toDouble(),
-      quantity: json.verifyKey<int>('quantity'),
+      name: json['name'] as String,
+      price: (json['price'] as num).toDouble(),
+      quantity: json['quantity'] as int,
     );
   }
 
@@ -44,20 +60,5 @@ class ProductDto implements Serializable {
         'quantity': quantity,
       };
 
-  static const schema = {
-    'type': 'object',
-    'properties': {
-      'id': {'type': 'integer'},
-      'name': {'type': 'string'},
-      'price': {'type': 'number'},
-      'quantity': {'type': 'integer'},
-    },
-    'required': ['name', 'price', 'quantity'],
-    'example': {
-      'id': 1,
-      'name': 'Keyboard',
-      'price': 29.99,
-      'quantity': 15,
-    }
-  };
+  static Map<String, dynamic> get schema => fields.toJsonSchema();
 }

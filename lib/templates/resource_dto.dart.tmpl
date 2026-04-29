@@ -1,14 +1,21 @@
 import 'package:dartapi_core/dartapi_core.dart';
 
 class {{ResourceName}}Dto {
-  final String name; // TODO: replace with your actual fields
+  static final fields = FieldSet({
+    'name': Field<String>(validators: [NotEmptyValidator()]),
+    // TODO: add more fields here
+  });
+
+  final String name;
 
   const {{ResourceName}}Dto({required this.name});
 
   factory {{ResourceName}}Dto.fromJson(Map<String, dynamic> json) {
-    json.verifyKey<String>('name', validators: [const NotEmptyValidator()]);
+    fields.validate(json);
     return {{ResourceName}}Dto(name: json['name'] as String);
   }
 
   Map<String, dynamic> toMap() => {'name': name};
+
+  static Map<String, dynamic> get schema => fields.toJsonSchema();
 }

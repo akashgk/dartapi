@@ -1,6 +1,21 @@
 import 'package:dartapi_core/dartapi_core.dart';
 
 class UserDTO {
+  static final fields = FieldSet({
+    'name': Field<String>(
+      validators: [NotEmptyValidator(), MaxLengthValidator(100)],
+      example: 'Alice',
+    ),
+    'email': Field<String>(
+      validators: [EmailValidator()],
+      example: 'alice@example.com',
+    ),
+    'age': Field<int>(
+      validators: [RangeValidator<int>(min: 0, max: 150)],
+      example: 30,
+    ),
+  });
+
   final String name;
   final int age;
   final String email;
@@ -8,44 +23,13 @@ class UserDTO {
   const UserDTO({required this.name, required this.age, required this.email});
 
   factory UserDTO.fromJson(Map<String, dynamic> json) {
-    // validateAll collects every field error before throwing, so the client
-    // receives the full list of problems in one response instead of one at a time.
-    json.validateAll({
-      'name': () => json.verifyKey<String>('name',
-          validators: [NotEmptyValidator(), MaxLengthValidator(100)]),
-      'email': () => json.verifyKey<String>('email',
-          validators: [EmailValidator('Invalid email format')]),
-      'age': () => json.verifyKey<int>('age',
-          validators: [RangeValidator<int>(min: 0, max: 150)]),
-    });
-
+    fields.validate(json);
     return UserDTO(
-      name: json.verifyKey<String>('name'),
-      age: json.verifyKey<int>('age'),
-      email: json.verifyKey<String>('email'),
+      name: json['name'] as String,
+      age: json['age'] as int,
+      email: json['email'] as String,
     );
   }
 
-  static const schema = {
-    'type': 'object',
-    'required': ['name', 'age', 'email'],
-    'properties': {
-      'name': {
-        'type': 'string',
-        'maxLength': 100,
-        'example': 'Alice',
-      },
-      'age': {
-        'type': 'integer',
-        'minimum': 0,
-        'maximum': 150,
-        'example': 30,
-      },
-      'email': {
-        'type': 'string',
-        'format': 'email',
-        'example': 'alice@example.com',
-      },
-    },
-  };
+  static Map<String, dynamic> get schema => fields.toJsonSchema();
 }

@@ -1,3 +1,11 @@
+## 0.1.48
+
+- Update DTO templates to use `FieldSet` from `dartapi_core ^0.1.4`:
+  - `user_dto.dart.tmpl`, `login_dto.dart.tmpl`, `product_dto.dart.tmpl`, `resource_dto.dart.tmpl`
+  - Replaced manual `static const schema = {...}` with `static Map<String, dynamic> get schema => fields.toJsonSchema()`.
+  - Replaced individual `verifyKey` calls in `fromJson` with `fields.validate(json)`.
+- Bump minimum `dartapi_core` dependency to `^0.1.4`.
+
 ## 0.1.47
 - Fix generated `hello_controller.dart`: replace non-existent `ApiRoute.get()` factory with `ApiRoute(method: ApiMethod.get, typedHandler:)`
 - Fix `bootstrap.dart` ambiguous `AppConfig` import: hide `AppConfig` from `dartapi_core` so the project's own subclass takes precedence

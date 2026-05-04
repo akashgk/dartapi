@@ -62,6 +62,22 @@ Future<void> createProject(
     print('Warning: dart pub get failed:\n${pubGet.stderr}');
   }
 
+  print('Running dart analyze...');
+  final analyze = await Process.run(
+    'dart',
+    ['analyze', '--fatal-infos'],
+    workingDirectory: name,
+  );
+  if (analyze.exitCode != 0) {
+    final output =
+        (analyze.stdout as String).trim().isNotEmpty
+            ? analyze.stdout
+            : analyze.stderr;
+    print('Analyzer warnings:\n$output');
+  } else {
+    print('No analyzer issues found.');
+  }
+
   print('******************************');
   print('DartAPI project $name created successfully!');
   print('******************************');

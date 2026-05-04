@@ -1,3 +1,9 @@
+## 0.1.50
+
+- Bump generated `dartapi_core` dependency to `^0.1.9` and `dartapi_db` to `^0.0.15`.
+- Add `Dockerfile` to every generated project (both `--minimal` and `--full`) — multi-stage build producing a slim Debian runtime image.
+- Run `dart analyze` after `dart pub get` during project scaffolding — analyzer warnings are printed so issues are surfaced immediately after `dartapi create`.
+
 ## 0.1.49
 
 - Bump generated `dartapi_core` dependency to `^0.1.8` and `dartapi_db` to `^0.0.14`.

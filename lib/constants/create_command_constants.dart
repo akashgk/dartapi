@@ -128,6 +128,7 @@ class CreateCommandConstants {
       _load('analysis_options.yaml.tmpl', vars).then((v) => MapEntry('$name/analysis_options.yaml', v)),
       _load('gitignore.tmpl', vars).then((v) => MapEntry('$name/.gitignore', v)),
       _load('readme.md.tmpl', vars).then((v) => MapEntry('$name/README.md', v)),
+      _load('dockerfile.tmpl', vars).then((v) => MapEntry('$name/Dockerfile', v)),
     ]);
     final map = Map<String, String>.fromEntries(entries);
     map['$name/pubspec.yaml'] = _buildPubspecContent(name, kAllFeatures);
@@ -158,6 +159,7 @@ class CreateCommandConstants {
       _load('analysis_options.yaml.tmpl', vars).then((v) => MapEntry('$name/analysis_options.yaml', v)),
       _load('gitignore.tmpl', vars).then((v) => MapEntry('$name/.gitignore', v)),
       _load('readme_minimal.md.tmpl', vars).then((v) => MapEntry('$name/README.md', v)),
+      _load('dockerfile.tmpl', vars).then((v) => MapEntry('$name/Dockerfile', v)),
     ]);
 
     // ── auth feature ─────────────────────────────────────────────────────────
@@ -386,10 +388,10 @@ class CreateCommandConstants {
     buf.writeln('  sdk: ^3.7.2');
     buf.writeln();
     buf.writeln('dependencies:');
-    buf.writeln('  dartapi_core: ^0.1.8');
+    buf.writeln('  dartapi_core: ^0.1.9');
     buf.writeln('  shelf: ^1.4.2');
     if (features.contains(Feature.db)) {
-      buf.writeln('  dartapi_db: ^0.0.14');
+      buf.writeln('  dartapi_db: ^0.0.15');
     }
     if (features.contains(Feature.ws)) {
       buf.writeln('  shelf_web_socket: ^3.0.0');

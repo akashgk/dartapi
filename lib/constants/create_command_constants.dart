@@ -227,7 +227,8 @@ class CreateCommandConstants {
     final hasAny = features.isNotEmpty;
 
     // ── Imports ──────────────────────────────────────────────────────────────
-    if (hasDb) buf.writeln("import 'dart:io';");
+    // dart:io needed for Platform.environment in _loadEnv(), generated for any feature.
+    if (hasAny) buf.writeln("import 'dart:io';");
     if (hasAny) buf.writeln();
     buf.writeln("import 'package:dartapi_core/dartapi_core.dart';");
     if (hasDb) buf.writeln("import 'package:dartapi_db/dartapi_db.dart';");
@@ -382,13 +383,13 @@ class CreateCommandConstants {
     buf.writeln("publish_to: 'none'");
     buf.writeln('version: 0.1.0');
     buf.writeln('environment:');
-    buf.writeln('  sdk: ^3.7.0');
+    buf.writeln('  sdk: ^3.7.2');
     buf.writeln();
     buf.writeln('dependencies:');
-    buf.writeln('  dartapi_core: ^0.1.2');
+    buf.writeln('  dartapi_core: ^0.1.8');
     buf.writeln('  shelf: ^1.4.2');
     if (features.contains(Feature.db)) {
-      buf.writeln('  dartapi_db: ^0.0.12');
+      buf.writeln('  dartapi_db: ^0.0.14');
     }
     if (features.contains(Feature.ws)) {
       buf.writeln('  shelf_web_socket: ^3.0.0');

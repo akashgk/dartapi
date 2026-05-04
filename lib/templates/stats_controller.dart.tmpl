@@ -11,7 +11,8 @@ import 'package:dartapi_core/dartapi_core.dart';
 ///   -H "X-Admin-Key: $ADMIN_API_KEY"
 /// ```
 class StatsController extends BaseController {
-  static final _startTime = DateTime.now();
+  static final _uptime = Stopwatch()..start();
+  static final _startedAt = DateTime.now();
 
   static Set<String> get _adminKeys => {
         Platform.environment['ADMIN_API_KEY'] ?? 'change-this-admin-key',
@@ -45,11 +46,11 @@ class StatsController extends BaseController {
       );
 
   Future<Map<String, dynamic>> _stats(Request req, void _) async {
-    final uptime = DateTime.now().difference(_startTime);
+    final uptime = _uptime.elapsed;
     return {
       'uptime':
           '${uptime.inHours}h ${uptime.inMinutes.remainder(60)}m ${uptime.inSeconds.remainder(60)}s',
-      'startedAt': _startTime.toIso8601String(),
+      'startedAt': _startedAt.toIso8601String(),
       'pid': pid,
     };
   }

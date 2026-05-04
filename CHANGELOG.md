@@ -1,3 +1,14 @@
+## 0.1.49
+
+- Bump generated `dartapi_core` dependency to `^0.1.8` and `dartapi_db` to `^0.0.14`.
+- Bump generated project SDK constraint from `^3.7.0` to `^3.7.2`.
+- Fix `_buildMainContent`: `dart:io` is now imported whenever any feature flag is active (was only imported for `--with=db`), fixing a compile error in projects generated with `--with=auth`, `--with=files`, or `--with=ws` but without `--with=db` (`_loadEnv` uses `Platform.environment`).
+- Fix `auth_service_test.dart.tmpl`: remove duplicate `import 'package:dartapi_core/dartapi_core.dart'`.
+- Fix `stats_controller.dart.tmpl`: replace `DateTime.now()` uptime with `Stopwatch.elapsed` — immune to system clock adjustments.
+- Fix `user_service_test.dart.tmpl`: add `const` to `UserDTO(...)` constructor calls.
+- Bump `dartapi` SDK constraint to `^3.7.2`, `shelf` to `^1.4.2`, `test` to `^1.24.0`.
+- Dependency upgrades: `test` 1.31.0 → 1.31.1 and related transitive dev bumps.
+
 ## 0.1.48
 
 - Update DTO templates to use `FieldSet` from `dartapi_core ^0.1.4`:

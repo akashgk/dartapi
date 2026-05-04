@@ -41,7 +41,7 @@ void main() {
     });
 
     test('createUser adds and returns the new user with an id', () async {
-      final dto = UserDTO(name: 'Carol', age: 28, email: 'carol@example.com');
+      const dto = UserDTO(name: 'Carol', age: 28, email: 'carol@example.com');
       final user = await userService.createUser(dto);
       expect(user.id, isNotNull);
       expect(user.name, equals('Carol'));
@@ -51,7 +51,7 @@ void main() {
     test('createUser is reflected in subsequent getUsers call', () async {
       final before = await userService.getUsers();
       await userService.createUser(
-        UserDTO(name: 'Dave', age: 35, email: 'dave@example.com'),
+        const UserDTO(name: 'Dave', age: 35, email: 'dave@example.com'),
       );
       final after = await userService.getUsers();
       expect(after.length, equals(before.length + 1));

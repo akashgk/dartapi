@@ -1,3 +1,9 @@
+## 0.1.51
+
+- Fix `--full` generated projects: add `import 'package:shelf/shelf.dart'` to `auth_controller.dart`, `files_controller.dart`, `notifications_controller.dart`, `product_controller.dart`, `stats_controller.dart`, and `user_controller.dart` templates — `Request` and `Response` are not re-exported by `dartapi_core`, causing undefined-class errors.
+- Fix `ws_controller.dart.tmpl`: change bare `catch (_)` to `on Object catch (_)` to satisfy the `avoid_catches_without_on_clauses` lint.
+- Fix `bootstrap.dart.tmpl`: remove redundant `import 'package:<project>/src/core/dartapi.dart'` — `DartAPI` is already provided by the `dartapi_core` import, making it an unnecessary import warning.
+
 ## 0.1.50
 
 - Bump generated `dartapi_core` dependency to `^0.1.9` and `dartapi_db` to `^0.0.15`.

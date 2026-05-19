@@ -39,7 +39,7 @@ class WsController extends BaseController {
                 final payload =
                     jsonDecode(message as String) as Map<String, dynamic>;
                 channel.sink.add(jsonEncode({'type': 'echo', 'data': payload}));
-              } catch (_) {
+              } on Object catch (_) {
                 channel.sink.add(
                   jsonEncode({'type': 'error', 'message': 'Expected JSON'}),
                 );

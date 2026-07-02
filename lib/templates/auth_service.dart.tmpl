@@ -22,24 +22,30 @@ class AuthService {
       throw const ApiException(401, 'Invalid credentials');
     }
 
-    final accessToken = _jwtService.generateAccessToken(
+    final pair = _jwtService.generateTokenPair(
       claims: {'sub': 'user-1', 'email': dto.username, 'role': 'admin'},
     );
-    final refreshToken =
-        _jwtService.generateRefreshToken(accessToken: accessToken);
 
-    return TokenResponse(accessToken: accessToken, refreshToken: refreshToken);
+    return TokenResponse(
+      accessToken: pair.accessToken,
+      refreshToken: pair.refreshToken,
+    );
   }
 
-  /// Exchanges a valid refresh token for a new access token.
-  /// The refresh token itself is re-issued unchanged (rotation is optional).
+  /// Exchanges a valid refresh token for a full new access + refresh pair.
+  ///
+  /// Refresh tokens are single-use (rotation): [JwtService.verifyRefreshToken]
+  /// atomically consumes the presented token via the configured [TokenStore],
+  /// so the client MUST store and use the new refresh token from the response.
+  /// Presenting a consumed token again fails with 401 and triggers the
+  /// [JwtService.onRefreshTokenReuse] callback (a token-theft signal).
   Future<TokenResponse> refresh(String refreshToken) async {
     final payload = await _jwtService.verifyRefreshToken(refreshToken);
     if (payload == null) {
       throw const ApiException(401, 'Invalid or expired refresh token');
     }
 
-    final newAccessToken = _jwtService.generateAccessToken(
+    final pair = _jwtService.generateTokenPair(
       claims: {
         'sub': payload['sub'],
         'email': payload['email'] ?? '',
@@ -48,16 +54,29 @@ class AuthService {
     );
 
     return TokenResponse(
-      accessToken: newAccessToken,
-      refreshToken: refreshToken,
+      accessToken: pair.accessToken,
+      refreshToken: pair.refreshToken,
     );
   }
 
-  /// Revokes [token] — it will be rejected by [authMiddleware] on all future
-  /// requests until the token naturally expires.
+  /// Revokes the access token (and, when provided, the refresh token) — they
+  /// will be rejected by [authMiddleware] and [JwtService.verifyRefreshToken]
+  /// on all future requests until they naturally expire.
   ///
-  /// The revoked JTI is stored in the [TokenStore] configured in main.dart.
+  /// [JwtService.revokeToken] verifies each token's signature before revoking
+  /// and returns `false` for tokens that fail verification.
+  ///
+  /// The revoked JTIs are stored in the [TokenStore] configured in main.dart.
   /// Switch from [InMemoryTokenStore] to a Redis or database-backed store for
-  /// multi-instance deployments.
-  Future<void> logout(String token) => _jwtService.revokeToken(token);
+  /// multi-instance deployments (extend [TokenStore] and override
+  /// `revokeIfActive` with an atomic operation, e.g. Redis `SET NX EX`).
+  Future<void> logout({
+    required String accessToken,
+    String? refreshToken,
+  }) async {
+    await _jwtService.revokeToken(accessToken);
+    if (refreshToken != null) {
+      await _jwtService.revokeToken(refreshToken);
+    }
+  }
 }

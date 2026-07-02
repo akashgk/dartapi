@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dartapi_core/dartapi_core.dart';
 import 'package:shelf/shelf.dart';
 import 'package:{{projectName}}/src/dto/login_dto.dart';
@@ -38,8 +40,10 @@ class AuthController extends BaseController {
         dtoParser: _RefreshRequest.fromJson,
         summary: 'Refresh token',
         description:
-            'Exchanges a valid refresh token for a new access token. '
-            'Send the refresh token in the JSON request body.',
+            'Exchanges a valid refresh token for a new access + refresh '
+            'token pair. Refresh tokens are single-use: the presented token '
+            'is consumed, so store and use the new refresh token from the '
+            'response. Send the refresh token in the JSON request body.',
         requestSchema: {
           'type': 'object',
           'required': ['refreshToken'],
@@ -58,8 +62,20 @@ class AuthController extends BaseController {
         middlewares: [authMiddleware(_jwtService)],
         summary: 'Logout',
         description:
-            'Revokes the current bearer token. All subsequent requests '
-            'that present this token will receive 401 Unauthorized.',
+            'Revokes the current bearer token, and optionally the refresh '
+            'token when one is sent in the JSON request body. All subsequent '
+            'requests that present a revoked token will receive '
+            '401 Unauthorized.',
+        requestSchema: {
+          'type': 'object',
+          'properties': {
+            'refreshToken': {
+              'type': 'string',
+              'description':
+                  'Optional — also revoke this refresh token on logout.',
+            },
+          },
+        },
         security: [SecurityScheme.bearer],
       );
 
@@ -74,7 +90,27 @@ class AuthController extends BaseController {
   Future<void> _logout(Request req, void _) async {
     final authHeader = req.header<String>('authorization') ?? '';
     if (!authHeader.startsWith('Bearer ')) return;
-    await _authService.logout(authHeader.substring(7));
+
+    // The body is optional: send {"refreshToken": "..."} to revoke the
+    // refresh token together with the access token.
+    String? refreshToken;
+    final body = await req.readAsString();
+    if (body.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(body);
+        if (decoded is Map<String, dynamic> &&
+            decoded['refreshToken'] is String) {
+          refreshToken = decoded['refreshToken'] as String;
+        }
+      } on FormatException {
+        // Malformed body — still revoke the access token below.
+      }
+    }
+
+    await _authService.logout(
+      accessToken: authHeader.substring(7),
+      refreshToken: refreshToken,
+    );
   }
 }
 

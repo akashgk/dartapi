@@ -40,8 +40,11 @@ DartAPI createApp(AppConfig config, {DartApiDB? db}) {
   );
 
   // ── Auth ───────────────────────────────────────────────────────────────────
-  // InMemoryTokenStore keeps revoked JTIs in-process.
-  // Swap for a Redis-backed store in multi-instance or persistent deployments.
+  // InMemoryTokenStore keeps revoked JTIs in-process. For multi-instance or
+  // persistent deployments, extend TokenStore (it is a base class, not an
+  // interface) with a Redis/database backend and override revokeIfActive
+  // with an atomic operation (e.g. Redis `SET key 1 NX EX ttl`) so refresh
+  // rotation stays race-free across processes.
   app.register<InMemoryTokenStore>((_) => InMemoryTokenStore());
   app.register<JwtService>(
     (r) => JwtService(
@@ -50,6 +53,15 @@ DartAPI createApp(AppConfig config, {DartApiDB? db}) {
       issuer: '{{projectName}}',
       audience: '{{projectName}}-users',
       tokenStore: r.get<InMemoryTokenStore>(),
+      // Fires when an already-consumed refresh token is presented again —
+      // the classic token-theft signal (either an attacker or the real user
+      // used it first; the other party's attempt lands here). Respond by
+      // terminating the whole session, e.g. revoke all tokens for
+      // payload['sub'] and force a fresh login.
+      onRefreshTokenReuse: (payload) async {
+        // ignore: avoid_print
+        print('[security] refresh token reuse detected for sub=${payload['sub']}');
+      },
     ),
   );
 
@@ -59,6 +71,11 @@ DartAPI createApp(AppConfig config, {DartApiDB? db}) {
   app.register<ProductService>((r) => ProductService(repository: r.get<ProductRepository>()));
 
   // ── Middleware ─────────────────────────────────────────────────────────────
+  // Structured JSON request logs; health/metrics probes are not logged.
+  app.configureLogging(
+    format: LogFormat.json,
+    excludePaths: ['/health', '/metrics'],
+  );
   app.enableCompression();
   app.enableBackgroundTasks();
   app.enableTimeout(const Duration(seconds: 30));

@@ -71,7 +71,10 @@ Future<void> _startApp(int port, {bool shared = false}) async {
     await db?.close();
   });
 
-  await app.start(port: port, shared: shared);
+  // `address` is configurable — e.g. '127.0.0.1' to bind loopback only.
+  // For a graceful programmatic shutdown (tests, embedding), call
+  // `await app.stop()`; SIGINT/SIGTERM are already handled by start().
+  await app.start(port: port, address: '0.0.0.0', shared: shared);
 }
 
 Map<String, String> _loadEnv() {

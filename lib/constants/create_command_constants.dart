@@ -232,12 +232,18 @@ class CreateCommandConstants {
     // dart:io needed for Platform.environment in _loadEnv(), generated for any feature.
     if (hasAny) buf.writeln("import 'dart:io';");
     if (hasAny) buf.writeln();
-    buf.writeln("import 'package:dartapi_core/dartapi_core.dart';");
+    // The project defines its own AppConfig subclass; hide the base one that
+    // the dartapi_core barrel exports to avoid an ambiguous_import error.
+    buf.writeln(hasAny
+        ? "import 'package:dartapi_core/dartapi_core.dart' hide AppConfig;"
+        : "import 'package:dartapi_core/dartapi_core.dart';");
     if (hasDb) buf.writeln("import 'package:dartapi_db/dartapi_db.dart';");
     buf.writeln();
+    // loadEnvFile/mergeEnv come from the dartapi_core import; the generated
+    // env_loader.dart only re-exports them, so importing it here would be
+    // flagged as unnecessary_import.
     if (hasAny) {
       buf.writeln("import 'package:$name/src/config/app_config.dart';");
-      buf.writeln("import 'package:$name/src/config/env_loader.dart';");
     }
     buf.writeln("import 'package:$name/src/controllers/hello_controller.dart';");
     if (hasAuth) {
@@ -274,6 +280,9 @@ class CreateCommandConstants {
 
     // Auth setup
     if (hasAuth) {
+      buf.writeln('  // InMemoryTokenStore keeps revoked JTIs in-process. For multi-instance');
+      buf.writeln('  // deployments, extend TokenStore with a Redis/database backend and');
+      buf.writeln('  // override revokeIfActive with an atomic op (e.g. Redis SET NX EX).');
       buf.writeln('  final tokenStore = InMemoryTokenStore();');
       buf.writeln('  final jwtService = JwtService(');
       buf.writeln('    accessTokenSecret: config.jwtAccessSecret,');
@@ -281,6 +290,14 @@ class CreateCommandConstants {
       buf.writeln("    issuer: '$name',");
       buf.writeln("    audience: '$name-users',");
       buf.writeln('    tokenStore: tokenStore,');
+      buf.writeln('    // Fires when an already-consumed refresh token is presented again —');
+      buf.writeln('    // the classic token-theft signal. Respond by terminating the whole');
+      buf.writeln("    // session, e.g. revoke all tokens for payload['sub'].");
+      buf.writeln('    onRefreshTokenReuse: (payload) async {');
+      buf.writeln('      // ignore: avoid_print');
+      buf.writeln(
+          r"      print('[security] refresh token reuse detected for sub=${payload['sub']}');");
+      buf.writeln('    },');
       buf.writeln('  );');
       buf.writeln('  final authService = AuthService(jwtService: jwtService);');
       buf.writeln();
@@ -317,6 +334,11 @@ class CreateCommandConstants {
       buf.writeln("  final app = DartAPI(appName: '$name');");
     }
     buf.writeln('  app.enableHealthCheck();');
+    buf.writeln('  // Structured JSON request logs; the /health probe is not logged.');
+    buf.writeln('  app.configureLogging(');
+    buf.writeln('    format: LogFormat.json,');
+    buf.writeln("    excludePaths: ['/health'],");
+    buf.writeln('  );');
     buf.writeln();
 
     // Controllers
@@ -347,7 +369,10 @@ class CreateCommandConstants {
       buf.writeln();
     }
 
-    buf.writeln('  await app.start(port: port);');
+    buf.writeln("  // `address` is configurable — e.g. '127.0.0.1' to bind loopback only.");
+    buf.writeln('  // For a graceful programmatic shutdown (tests, embedding), call');
+    buf.writeln('  // `await app.stop()`; SIGINT/SIGTERM are already handled by start().');
+    buf.writeln("  await app.start(port: port, address: '0.0.0.0');");
     buf.writeln('}');
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -388,7 +413,7 @@ class CreateCommandConstants {
     buf.writeln('  sdk: ^3.7.2');
     buf.writeln();
     buf.writeln('dependencies:');
-    buf.writeln('  dartapi_core: ^0.1.9');
+    buf.writeln('  dartapi_core: ^0.3.0');
     buf.writeln('  shelf: ^1.4.2');
     if (features.contains(Feature.db)) {
       buf.writeln('  dartapi_db: ^0.0.15');

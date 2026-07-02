@@ -8,11 +8,14 @@ void main() {
   late AuthService authService;
 
   setUp(() {
+    // A TokenStore is required for revocation (logout) and for single-use
+    // refresh-token rotation.
     jwtService = JwtService(
       accessTokenSecret: 'test-access-secret-key',
       refreshTokenSecret: 'test-refresh-secret-key',
       issuer: 'test',
       audience: 'test-users',
+      tokenStore: InMemoryTokenStore(),
     );
     authService = AuthService(jwtService: jwtService);
   });
@@ -37,7 +40,7 @@ void main() {
       );
     });
 
-    test('refresh with valid token returns new access token', () async {
+    test('refresh with valid token returns a full new token pair', () async {
       final dto = LoginDTO(
         username: 'admin@example.com',
         password: 'password',
@@ -45,6 +48,23 @@ void main() {
       final tokens = authService.login(dto);
       final refreshed = await authService.refresh(tokens.refreshToken);
       expect(refreshed.accessToken, isNotEmpty);
+      expect(refreshed.refreshToken, isNotEmpty);
+      // Rotation: the presented refresh token is consumed and a new one issued.
+      expect(refreshed.refreshToken, isNot(equals(tokens.refreshToken)));
+    });
+
+    test('refresh tokens are single-use — reuse throws 401', () async {
+      final dto = LoginDTO(
+        username: 'admin@example.com',
+        password: 'password',
+      );
+      final tokens = authService.login(dto);
+      await authService.refresh(tokens.refreshToken);
+      expect(
+        () => authService.refresh(tokens.refreshToken),
+        throwsA(isA<ApiException>()
+            .having((e) => e.statusCode, 'statusCode', 401)),
+      );
     });
 
     test('refresh with invalid token throws 401', () async {

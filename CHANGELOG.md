@@ -1,3 +1,17 @@
+## 0.1.52
+
+- Update generated projects to `dartapi_core ^0.3.0` (secure token revocation and refresh rotation):
+  - `auth_service.dart.tmpl`: login and refresh now issue tokens via `JwtService.generateTokenPair` — the deprecated `generateRefreshToken(accessToken: ...)` (removal planned for `dartapi_core` 0.4.0) is no longer used.
+  - Refresh endpoint returns a **full new token pair**: refresh tokens are single-use when a `TokenStore` is configured (`verifyRefreshToken` consumes them atomically), so the old token can no longer be re-issued unchanged.
+  - Logout revokes **both** the access token and (when sent in the request body as `{"refreshToken": "..."}`) the refresh token; `revokeToken` now verifies the token signature and returns `Future<bool>`.
+  - Wire the new `JwtService.onRefreshTokenReuse` callback in `bootstrap.dart.tmpl` and the generated `main.dart` with a comment explaining it fires when an already-consumed refresh token is presented again (token-theft signal).
+  - `TokenStore` is now a base class: comments in generated code explain to **extend** it (not implement), that `revoke()` gained a `{Duration? ttl}` parameter, and that distributed backends should override `revokeIfActive` with an atomic operation (e.g. Redis `SET NX EX`).
+  - Generated auth tests: `JwtService` is constructed with an `InMemoryTokenStore` (required for revocation and rotation), refresh tests assert a rotated (different) refresh token and that reuse of a consumed token throws 401, and logout tests cover revoking both tokens.
+- Use new `dartapi_core` APIs in generated projects:
+  - `app.configureLogging(format: LogFormat.json, excludePaths: [...])` — structured JSON request logs with health/metrics probes excluded.
+  - `app.start(address: '0.0.0.0', ...)` — bind address is now explicit/configurable, with a comment pointing at `await app.stop()` for graceful programmatic shutdown.
+- Generated README documents the rotated refresh response, single-use semantics, and that invalid/missing tokens receive `401` with a `WWW-Authenticate: Bearer` header (was `403` before `dartapi_core` 0.2.0).
+
 ## 0.1.51
 
 - Fix `--full` generated projects: add `import 'package:shelf/shelf.dart'` to `auth_controller.dart`, `files_controller.dart`, `notifications_controller.dart`, `product_controller.dart`, `stats_controller.dart`, and `user_controller.dart` templates — `Request` and `Response` are not re-exported by `dartapi_core`, causing undefined-class errors.

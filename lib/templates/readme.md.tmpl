@@ -232,13 +232,22 @@ Authorization: Bearer <access_token>
 // Response 200
 {
   "accessToken":  "<new_jwt>",
-  "refreshToken": "<same_refresh_jwt>"
+  "refreshToken": "<new_refresh_jwt>"
 }
 ```
 
+Refresh tokens are **single-use** (rotation): each call consumes the
+presented refresh token and returns a full new pair — store the new
+`refreshToken` from the response. Reusing a consumed refresh token fails
+with `401` and is treated as a token-theft signal
+(`JwtService.onRefreshTokenReuse`).
+
 #### `POST /auth/logout` *(Bearer token required)*
 
-Revokes the access token immediately. Returns `204 No Content`.
+Revokes the access token immediately; requests that present a revoked token
+receive `401 Unauthorized` (with a `WWW-Authenticate: Bearer` header).
+Optionally send `{ "refreshToken": "<refresh_jwt>" }` in the body to revoke
+the refresh token as well. Returns `204 No Content`.
 
 ---
 

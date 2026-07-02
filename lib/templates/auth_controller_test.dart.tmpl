@@ -8,11 +8,14 @@ void main() {
   late AuthService authService;
 
   setUp(() {
+    // A TokenStore is required for revocation (logout) and for single-use
+    // refresh-token rotation.
     jwtService = JwtService(
       accessTokenSecret: 'test-access-secret-32-chars-long!!',
       refreshTokenSecret: 'test-refresh-secret-32-chars-long!',
       issuer: 'test',
       audience: 'test-users',
+      tokenStore: InMemoryTokenStore(),
     );
     authService = AuthService(jwtService: jwtService);
   });
@@ -46,12 +49,31 @@ void main() {
     });
 
     group('refresh', () {
-      test('valid refresh token returns a new access token', () async {
+      test('valid refresh token returns a full new token pair', () async {
         final tokens = authService.login(
             LoginDTO(username: 'admin@example.com', password: 'password'));
         final refreshed = await authService.refresh(tokens.refreshToken);
         expect(refreshed.accessToken, isNotEmpty);
-        expect(refreshed.refreshToken, equals(tokens.refreshToken));
+        expect(refreshed.refreshToken, isNotEmpty);
+        // Rotation: a new refresh token is issued on every refresh.
+        expect(refreshed.refreshToken, isNot(equals(tokens.refreshToken)));
+      });
+
+      test('refresh tokens are single-use — reuse throws 401', () async {
+        final tokens = authService.login(
+            LoginDTO(username: 'admin@example.com', password: 'password'));
+
+        // First use succeeds and consumes the token...
+        await authService.refresh(tokens.refreshToken);
+
+        // ...so a second use of the same token is rejected.
+        expect(
+          () => authService.refresh(tokens.refreshToken),
+          throwsA(
+            isA<ApiException>()
+                .having((e) => e.statusCode, 'statusCode', 401),
+          ),
+        );
       });
 
       test('invalid refresh token throws 401', () async {
@@ -71,7 +93,7 @@ void main() {
             LoginDTO(username: 'admin@example.com', password: 'password'));
 
         // Revoke the token
-        await authService.logout(tokens.accessToken);
+        await authService.logout(accessToken: tokens.accessToken);
 
         // A revoked token should fail verification
         final payload =
@@ -79,11 +101,25 @@ void main() {
         expect(payload, isNull);
       });
 
+      test('logout also revokes the refresh token when provided', () async {
+        final tokens = authService.login(
+            LoginDTO(username: 'admin@example.com', password: 'password'));
+
+        await authService.logout(
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+        );
+
+        final payload =
+            await jwtService.verifyRefreshToken(tokens.refreshToken);
+        expect(payload, isNull);
+      });
+
       test('logout does not throw for a valid token', () async {
         final tokens = authService.login(
             LoginDTO(username: 'admin@example.com', password: 'password'));
         await expectLater(
-          authService.logout(tokens.accessToken),
+          authService.logout(accessToken: tokens.accessToken),
           completes,
         );
       });

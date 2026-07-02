@@ -24,10 +24,13 @@ Future<void> buildProject({
   print('  dart compile exe $entrypoint -o $output');
   print('');
 
-  final result = await Process.run(
-    'dart',
-    ['compile', 'exe', entrypoint, '-o', output],
-  );
+  final result = await Process.run('dart', [
+    'compile',
+    'exe',
+    entrypoint,
+    '-o',
+    output,
+  ]);
 
   if (result.stdout.toString().isNotEmpty) print(result.stdout);
   if (result.stderr.toString().isNotEmpty) print(result.stderr);

@@ -1,3 +1,21 @@
+## 0.2.0
+
+**Generated projects are production-deployable out of the box.**
+
+- Generated projects now depend on `dartapi_core ^0.4.0` and `dartapi_db ^0.1.0`:
+  - Graceful shutdown is built in — SIGTERM drains in-flight requests instead
+    of aborting them (correct behaviour under Kubernetes/Cloud Run rolling
+    deploys), with `onShutdown` hooks running after the drain.
+  - Rate limiting keys by the real socket IP; the full template documents the
+    `trustProxy: true` switch for deployments behind a proxy/load balancer.
+- `GET /health` now checks the database: when a DB is configured, generated
+  apps wire `db.ping()` into `enableHealthCheck(checks: [...])` and report
+  `"degraded"` when the database stops answering (both full and `--with=db`
+  scaffolds).
+- Every generated project ships a **GitHub Actions CI workflow**
+  (`.github/workflows/ci.yaml`): format check, `dart analyze --fatal-infos`,
+  and `dart test` on every push/PR.
+
 ## 0.1.52
 
 - Update generated projects to `dartapi_core ^0.3.0` (secure token revocation and refresh rotation):

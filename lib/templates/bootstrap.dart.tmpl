@@ -79,6 +79,10 @@ DartAPI createApp(AppConfig config, {DartApiDB? db}) {
   app.enableCompression();
   app.enableBackgroundTasks();
   app.enableTimeout(const Duration(seconds: 30));
+  // Rate limiting keys by the real socket IP (spoof-proof). If this app runs
+  // behind a reverse proxy or load balancer, add `trustProxy: true` so real
+  // clients are told apart via X-Forwarded-For — never set it when directly
+  // exposed to the internet (the header is client-controlled).
   app.enableRateLimit(
     maxRequests: 200,
     window: const Duration(minutes: 1),
@@ -109,7 +113,13 @@ DartAPI createApp(AppConfig config, {DartApiDB? db}) {
   ]);
 
   // ── Built-in endpoints ─────────────────────────────────────────────────────
-  app.enableHealthCheck(); // GET /health
+  // GET /health — reports "degraded" if any check fails. db.ping() answers
+  // false (never throws) when the database is unreachable.
+  app.enableHealthCheck(checks: [
+    if (db != null)
+      () async =>
+          HealthCheckResult(name: 'database', healthy: await db.ping()),
+  ]);
   app.enableMetrics();     // GET /metrics (Prometheus)
   app.enableDocs(title: '{{projectName}}', version: '1.0.0'); // GET /docs
 

@@ -86,7 +86,9 @@ Future<void> main(List<String> args) async {
     case 'create':
       if (args.length < 2) {
         print('Please provide a project name.');
-        print('Usage: dartapi create <name> [--minimal|--full|--with=<features>]');
+        print(
+          'Usage: dartapi create <name> [--minimal|--full|--with=<features>]',
+        );
         exit(1);
       }
       final projectName = args[1];
@@ -101,14 +103,18 @@ Future<void> main(List<String> args) async {
           final portStr = args[i].split('=')[1];
           port = int.tryParse(portStr) ?? -1;
           if (port < 1024 || port > 65535) {
-            print('Error: Invalid port number. Use a value between 1024 and 65535.');
+            print(
+              'Error: Invalid port number. Use a value between 1024 and 65535.',
+            );
             exit(1);
           }
           break;
         } else if (args[i] == '--port' && i + 1 < args.length) {
           port = int.tryParse(args[i + 1]) ?? -1;
           if (port < 1024 || port > 65535) {
-            print('Error: Invalid port number. Use a value between 1024 and 65535.');
+            print(
+              'Error: Invalid port number. Use a value between 1024 and 65535.',
+            );
             exit(1);
           }
           break;
@@ -145,7 +151,9 @@ Future<void> main(List<String> args) async {
 
     case 'generate':
       if (args.length < 3) {
-        print('Please specify what to generate: controller | resource | migration');
+        print(
+          'Please specify what to generate: controller | resource | migration',
+        );
         exit(1);
       }
       if (args[1] == 'controller') {

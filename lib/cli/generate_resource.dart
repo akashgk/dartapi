@@ -7,10 +7,7 @@ Future<void> generateResource(String name) async {
   final resourceName = name.capitalize();
   final resourcePath = name.toLowerCase();
 
-  final vars = {
-    'ResourceName': resourceName,
-    'resourcePath': resourcePath,
-  };
+  final vars = {'ResourceName': resourceName, 'resourcePath': resourcePath};
 
   final files = {
     'lib/src/controllers/${resourcePath}_controller.dart':

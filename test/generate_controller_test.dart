@@ -37,14 +37,18 @@ void main() {
     test('generated controller extends BaseController', () async {
       await generateController('Invoice');
       final content =
-          File('lib/src/controllers/invoice_controller.dart').readAsStringSync();
+          File(
+            'lib/src/controllers/invoice_controller.dart',
+          ).readAsStringSync();
       expect(content, contains('extends BaseController'));
     });
 
     test('generated file has a routes getter', () async {
       await generateController('Payment');
       final content =
-          File('lib/src/controllers/payment_controller.dart').readAsStringSync();
+          File(
+            'lib/src/controllers/payment_controller.dart',
+          ).readAsStringSync();
       expect(content, contains('get routes'));
     });
 

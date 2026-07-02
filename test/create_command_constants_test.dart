@@ -39,13 +39,16 @@ void main() {
       );
     });
 
-    test('does not include services, models, dto, repositories, or migrations', () {
-      expect(dirs, isNot(contains('myapp/lib/src/services')));
-      expect(dirs, isNot(contains('myapp/lib/src/models')));
-      expect(dirs, isNot(contains('myapp/lib/src/dto')));
-      expect(dirs, isNot(contains('myapp/lib/src/repositories')));
-      expect(dirs, isNot(contains('myapp/migrations')));
-    });
+    test(
+      'does not include services, models, dto, repositories, or migrations',
+      () {
+        expect(dirs, isNot(contains('myapp/lib/src/services')));
+        expect(dirs, isNot(contains('myapp/lib/src/models')));
+        expect(dirs, isNot(contains('myapp/lib/src/dto')));
+        expect(dirs, isNot(contains('myapp/lib/src/repositories')));
+        expect(dirs, isNot(contains('myapp/migrations')));
+      },
+    );
 
     test('all paths are prefixed with the project name', () {
       for (final d in dirs) {
@@ -57,7 +60,11 @@ void main() {
   group('directories() — with auth', () {
     late List<String> dirs;
     setUp(
-      () => dirs = CreateCommandConstants.directories('myapp', features: {Feature.auth}),
+      () =>
+          dirs = CreateCommandConstants.directories(
+            'myapp',
+            features: {Feature.auth},
+          ),
     );
 
     test('includes services, models, dto, and test/services', () {
@@ -81,22 +88,29 @@ void main() {
   group('directories() — with db', () {
     late List<String> dirs;
     setUp(
-      () => dirs = CreateCommandConstants.directories('myapp', features: {Feature.db}),
+      () =>
+          dirs = CreateCommandConstants.directories(
+            'myapp',
+            features: {Feature.db},
+          ),
     );
 
-    test('includes repositories and migrations in addition to services/models/dto', () {
-      expect(
-        dirs,
-        containsAll([
-          'myapp/lib/src/services',
-          'myapp/lib/src/models',
-          'myapp/lib/src/dto',
-          'myapp/lib/src/repositories',
-          'myapp/migrations',
-          'myapp/test/services',
-        ]),
-      );
-    });
+    test(
+      'includes repositories and migrations in addition to services/models/dto',
+      () {
+        expect(
+          dirs,
+          containsAll([
+            'myapp/lib/src/services',
+            'myapp/lib/src/models',
+            'myapp/lib/src/dto',
+            'myapp/lib/src/repositories',
+            'myapp/migrations',
+            'myapp/test/services',
+          ]),
+        );
+      },
+    );
   });
 
   group('directories() — full', () {
@@ -179,7 +193,10 @@ void main() {
     });
 
     test('does NOT generate bootstrap.dart', () {
-      expect(fileMap.keys, isNot(contains('myapp/lib/src/core/bootstrap.dart')));
+      expect(
+        fileMap.keys,
+        isNot(contains('myapp/lib/src/core/bootstrap.dart')),
+      );
     });
 
     test('does NOT generate migrations', () {
@@ -226,11 +243,14 @@ void main() {
       expect(fileMap['myapp/bin/main.dart'], contains('hello_controller.dart'));
     });
 
-    test('main.dart does NOT import JwtService or database in minimal mode', () {
-      final main = fileMap['myapp/bin/main.dart']!;
-      expect(main, isNot(contains('JwtService')));
-      expect(main, isNot(contains('dartapi_db')));
-    });
+    test(
+      'main.dart does NOT import JwtService or database in minimal mode',
+      () {
+        final main = fileMap['myapp/bin/main.dart']!;
+        expect(main, isNot(contains('JwtService')));
+        expect(main, isNot(contains('dartapi_db')));
+      },
+    );
 
     test('main.dart calls app.start()', () {
       expect(fileMap['myapp/bin/main.dart'], contains('app.start('));
@@ -274,7 +294,10 @@ void main() {
   group('files() — with=auth', () {
     late Map<String, String> fileMap;
     setUpAll(() async {
-      fileMap = await CreateCommandConstants.files('myapp', features: {Feature.auth});
+      fileMap = await CreateCommandConstants.files(
+        'myapp',
+        features: {Feature.auth},
+      );
     });
 
     test('generates hello_controller AND auth_controller', () {
@@ -343,7 +366,10 @@ void main() {
   group('files() — with=db', () {
     late Map<String, String> fileMap;
     setUpAll(() async {
-      fileMap = await CreateCommandConstants.files('myapp', features: {Feature.db});
+      fileMap = await CreateCommandConstants.files(
+        'myapp',
+        features: {Feature.db},
+      );
     });
 
     test('generates user/product CRUD and migrations', () {
@@ -378,7 +404,10 @@ void main() {
     });
 
     test('pubspec.yaml does NOT include shelf_web_socket', () {
-      expect(fileMap['myapp/pubspec.yaml'], isNot(contains('shelf_web_socket')));
+      expect(
+        fileMap['myapp/pubspec.yaml'],
+        isNot(contains('shelf_web_socket')),
+      );
     });
 
     test('main.dart imports dartapi_db', () {
@@ -449,7 +478,8 @@ void main() {
     });
 
     test('user.dart is generated exactly once (not duplicated)', () {
-      final matches = fileMap.keys.where((k) => k.endsWith('user.dart')).toList();
+      final matches =
+          fileMap.keys.where((k) => k.endsWith('user.dart')).toList();
       expect(matches, hasLength(1));
     });
 
@@ -457,7 +487,9 @@ void main() {
       final main = fileMap['myapp/bin/main.dart']!;
       expect(
         main,
-        contains('UserController(userService: userService, jwtService: jwtService)'),
+        contains(
+          'UserController(userService: userService, jwtService: jwtService)',
+        ),
       );
     });
 
@@ -493,11 +525,17 @@ void main() {
   group('files() — with=files', () {
     late Map<String, String> fileMap;
     setUpAll(() async {
-      fileMap = await CreateCommandConstants.files('myapp', features: {Feature.files});
+      fileMap = await CreateCommandConstants.files(
+        'myapp',
+        features: {Feature.files},
+      );
     });
 
     test('generates files_controller', () {
-      expect(fileMap.keys, contains('myapp/lib/src/controllers/files_controller.dart'));
+      expect(
+        fileMap.keys,
+        contains('myapp/lib/src/controllers/files_controller.dart'),
+      );
     });
 
     test('files_controller.dart has optional jwtService', () {
@@ -523,11 +561,17 @@ void main() {
   group('files() — with=ws', () {
     late Map<String, String> fileMap;
     setUpAll(() async {
-      fileMap = await CreateCommandConstants.files('myapp', features: {Feature.ws});
+      fileMap = await CreateCommandConstants.files(
+        'myapp',
+        features: {Feature.ws},
+      );
     });
 
     test('generates ws_controller', () {
-      expect(fileMap.keys, contains('myapp/lib/src/controllers/ws_controller.dart'));
+      expect(
+        fileMap.keys,
+        contains('myapp/lib/src/controllers/ws_controller.dart'),
+      );
     });
 
     test('ws_controller.dart has optional jwtService', () {
@@ -679,11 +723,17 @@ void main() {
     });
 
     test('app_config.dart imports dartapi_core as core', () {
-      expect(fileMap['myapp/lib/src/config/app_config.dart'], contains('as core'));
+      expect(
+        fileMap['myapp/lib/src/config/app_config.dart'],
+        contains('as core'),
+      );
     });
 
     test('app_config.dart overrides dbName with the project name', () {
-      expect(fileMap['myapp/lib/src/config/app_config.dart'], contains('dbName'));
+      expect(
+        fileMap['myapp/lib/src/config/app_config.dart'],
+        contains('dbName'),
+      );
     });
 
     test('env_loader.dart exports loadEnvFile and mergeEnv', () {
@@ -708,7 +758,10 @@ void main() {
       final gitignore = fileMap['myapp/.gitignore']!;
       expect(gitignore, contains('env/.env'));
       final ignoreLines =
-          gitignore.split('\n').where((l) => !l.trimLeft().startsWith('#')).toList();
+          gitignore
+              .split('\n')
+              .where((l) => !l.trimLeft().startsWith('#'))
+              .toList();
       expect(ignoreLines, isNot(contains('env/.env.example')));
     });
 
@@ -719,14 +772,20 @@ void main() {
       );
     });
 
-    test('user_controller.dart defines UserController with optional jwtService', () {
-      final uc = fileMap['myapp/lib/src/controllers/user_controller.dart']!;
-      expect(uc, contains('class UserController'));
-      expect(uc, contains('JwtService?'));
-    });
+    test(
+      'user_controller.dart defines UserController with optional jwtService',
+      () {
+        final uc = fileMap['myapp/lib/src/controllers/user_controller.dart']!;
+        expect(uc, contains('class UserController'));
+        expect(uc, contains('JwtService?'));
+      },
+    );
 
     test('dartapi.dart re-exports DartAPI from dartapi_core', () {
-      expect(fileMap['myapp/lib/src/core/dartapi.dart'], contains('dartapi_core'));
+      expect(
+        fileMap['myapp/lib/src/core/dartapi.dart'],
+        contains('dartapi_core'),
+      );
     });
 
     test('README.md mentions all environments', () {
@@ -774,12 +833,18 @@ void main() {
         );
         final full = await CreateCommandConstants.files('myapp', full: true);
 
-        expect(minimal.keys, contains('myapp/lib/src/controllers/hello_controller.dart'));
+        expect(
+          minimal.keys,
+          contains('myapp/lib/src/controllers/hello_controller.dart'),
+        );
         expect(
           withAuth.keys,
           contains('myapp/lib/src/controllers/hello_controller.dart'),
         );
-        expect(withDb.keys, contains('myapp/lib/src/controllers/hello_controller.dart'));
+        expect(
+          withDb.keys,
+          contains('myapp/lib/src/controllers/hello_controller.dart'),
+        );
         // full mode does not generate hello_controller (it has auth/user/product/etc.)
         expect(
           full.keys,
@@ -790,7 +855,10 @@ void main() {
 
     test('pubspec.yaml always includes dartapi_core', () async {
       final minimal = await CreateCommandConstants.files('myapp');
-      final withDb = await CreateCommandConstants.files('myapp', features: {Feature.db});
+      final withDb = await CreateCommandConstants.files(
+        'myapp',
+        features: {Feature.db},
+      );
       final full = await CreateCommandConstants.files('myapp', full: true);
 
       expect(minimal['myapp/pubspec.yaml'], contains('dartapi_core'));
@@ -803,7 +871,10 @@ void main() {
       final full = await CreateCommandConstants.files('myapp', full: true);
 
       for (final mode in [minimal, full]) {
-        expect(mode.keys, containsAll(['myapp/env/.env.dev', 'myapp/env/.env.example']));
+        expect(
+          mode.keys,
+          containsAll(['myapp/env/.env.dev', 'myapp/env/.env.example']),
+        );
       }
     });
 
@@ -816,8 +887,14 @@ void main() {
       final full = await CreateCommandConstants.files('myapp', full: true);
 
       expect(full.keys, contains('myapp/lib/src/core/bootstrap.dart'));
-      expect(minimal.keys, isNot(contains('myapp/lib/src/core/bootstrap.dart')));
-      expect(withAuth.keys, isNot(contains('myapp/lib/src/core/bootstrap.dart')));
+      expect(
+        minimal.keys,
+        isNot(contains('myapp/lib/src/core/bootstrap.dart')),
+      );
+      expect(
+        withAuth.keys,
+        isNot(contains('myapp/lib/src/core/bootstrap.dart')),
+      );
     });
   });
 }

@@ -19,7 +19,9 @@ Future<void> generateController(String name) async {
   print('');
   print('Next: register it in bin/main.dart:');
   print('');
-  print("  import 'package:<your_project>/src/controllers/${name.toLowerCase()}_controller.dart';");
+  print(
+    "  import 'package:<your_project>/src/controllers/${name.toLowerCase()}_controller.dart';",
+  );
   print('');
   print('  app.addControllers([');
   print('    ...,');

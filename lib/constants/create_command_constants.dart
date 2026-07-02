@@ -16,7 +16,12 @@ import 'package:dartapi/templates/template_engine.dart';
 enum Feature { auth, db, files, ws }
 
 /// All four features combined — equivalent to `Feature.values.toSet()`.
-const Set<Feature> kAllFeatures = {Feature.auth, Feature.db, Feature.files, Feature.ws};
+const Set<Feature> kAllFeatures = {
+  Feature.auth,
+  Feature.db,
+  Feature.files,
+  Feature.ws,
+};
 
 class CreateCommandConstants {
   /// Returns the directory tree for a project named [name].
@@ -38,6 +43,7 @@ class CreateCommandConstants {
       '$name/bin',
       '$name/env',
       '$name/test',
+      '$name/.github/workflows',
     ];
 
     if (effective.contains(Feature.auth) || effective.contains(Feature.db)) {
@@ -50,10 +56,7 @@ class CreateCommandConstants {
     }
 
     if (effective.contains(Feature.db)) {
-      dirs.addAll([
-        '$name/lib/src/repositories',
-        '$name/migrations',
-      ]);
+      dirs.addAll(['$name/lib/src/repositories', '$name/migrations']);
     }
 
     return dirs;
@@ -81,54 +84,156 @@ class CreateCommandConstants {
     final vars = {'projectName': name};
     final entries = await Future.wait([
       // Entry point
-      _load('main.dart.tmpl', vars).then((v) => MapEntry('$name/bin/main.dart', v)),
+      _load(
+        'main.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/bin/main.dart', v)),
       // Config
-      _load('app_config.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/config/app_config.dart', v)),
-      _load('env_loader.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/config/env_loader.dart', v)),
+      _load(
+        'app_config.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/config/app_config.dart', v)),
+      _load(
+        'env_loader.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/config/env_loader.dart', v)),
       // Core
-      _load('dartapi.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/core/dartapi.dart', v)),
-      _load('core.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/core/core.dart', v)),
+      _load(
+        'dartapi.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/core/dartapi.dart', v)),
+      _load(
+        'core.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/core/core.dart', v)),
       // Bootstrap
-      _load('bootstrap.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/core/bootstrap.dart', v)),
+      _load(
+        'bootstrap.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/core/bootstrap.dart', v)),
       // Models
-      _load('token_response.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/models/token_response.dart', v)),
-      _load('user.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/models/user.dart', v)),
+      _load(
+        'token_response.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/models/token_response.dart', v)),
+      _load(
+        'user.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/models/user.dart', v)),
       // DTOs
-      _load('login_dto.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/dto/login_dto.dart', v)),
-      _load('user_dto.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/dto/user_dto.dart', v)),
-      _load('product_dto.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/dto/product_dto.dart', v)),
+      _load(
+        'login_dto.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/dto/login_dto.dart', v)),
+      _load(
+        'user_dto.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/dto/user_dto.dart', v)),
+      _load(
+        'product_dto.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/dto/product_dto.dart', v)),
       // Repositories
-      _load('user_repository.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/repositories/user_repository.dart', v)),
-      _load('product_repository.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/repositories/product_repository.dart', v)),
+      _load('user_repository.dart.tmpl', vars).then(
+        (v) => MapEntry('$name/lib/src/repositories/user_repository.dart', v),
+      ),
+      _load('product_repository.dart.tmpl', vars).then(
+        (v) =>
+            MapEntry('$name/lib/src/repositories/product_repository.dart', v),
+      ),
       // Services
-      _load('auth_service.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/services/auth_service.dart', v)),
-      _load('user_service.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/services/user_service.dart', v)),
-      _load('product_service.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/services/product_service.dart', v)),
+      _load(
+        'auth_service.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/services/auth_service.dart', v)),
+      _load(
+        'user_service.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/services/user_service.dart', v)),
+      _load(
+        'product_service.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/services/product_service.dart', v)),
       // Controllers
-      _load('auth_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/auth_controller.dart', v)),
-      _load('user_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/user_controller.dart', v)),
-      _load('product_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/product_controller.dart', v)),
-      _load('notifications_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/notifications_controller.dart', v)),
-      _load('files_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/files_controller.dart', v)),
-      _load('ws_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/ws_controller.dart', v)),
-      _load('stats_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/stats_controller.dart', v)),
+      _load('auth_controller.dart.tmpl', vars).then(
+        (v) => MapEntry('$name/lib/src/controllers/auth_controller.dart', v),
+      ),
+      _load('user_controller.dart.tmpl', vars).then(
+        (v) => MapEntry('$name/lib/src/controllers/user_controller.dart', v),
+      ),
+      _load('product_controller.dart.tmpl', vars).then(
+        (v) => MapEntry('$name/lib/src/controllers/product_controller.dart', v),
+      ),
+      _load('notifications_controller.dart.tmpl', vars).then(
+        (v) => MapEntry(
+          '$name/lib/src/controllers/notifications_controller.dart',
+          v,
+        ),
+      ),
+      _load('files_controller.dart.tmpl', vars).then(
+        (v) => MapEntry('$name/lib/src/controllers/files_controller.dart', v),
+      ),
+      _load('ws_controller.dart.tmpl', vars).then(
+        (v) => MapEntry('$name/lib/src/controllers/ws_controller.dart', v),
+      ),
+      _load('stats_controller.dart.tmpl', vars).then(
+        (v) => MapEntry('$name/lib/src/controllers/stats_controller.dart', v),
+      ),
       // Migrations
-      _load('migration_users.sql.tmpl', vars).then((v) => MapEntry('$name/migrations/0001_create_users_table.sql', v)),
-      _load('migration_products.sql.tmpl', vars).then((v) => MapEntry('$name/migrations/0002_create_products_table.sql', v)),
+      _load('migration_users.sql.tmpl', vars).then(
+        (v) => MapEntry('$name/migrations/0001_create_users_table.sql', v),
+      ),
+      _load('migration_products.sql.tmpl', vars).then(
+        (v) => MapEntry('$name/migrations/0002_create_products_table.sql', v),
+      ),
       // Tests
-      _load('auth_controller_test.dart.tmpl', vars).then((v) => MapEntry('$name/test/services/auth_service_test.dart', v)),
-      _load('user_controller_test.dart.tmpl', vars).then((v) => MapEntry('$name/test/services/user_service_test.dart', v)),
+      _load(
+        'auth_controller_test.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/test/services/auth_service_test.dart', v)),
+      _load(
+        'user_controller_test.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/test/services/user_service_test.dart', v)),
       // Environment files
-      _load('env.example.tmpl', vars).then((v) => MapEntry('$name/env/.env.example', v)),
-      _load('env.dev.tmpl', vars).then((v) => MapEntry('$name/env/.env.dev', v)),
-      _load('env.staging.tmpl', vars).then((v) => MapEntry('$name/env/.env.staging', v)),
-      _load('env.uat.tmpl', vars).then((v) => MapEntry('$name/env/.env.uat', v)),
-      _load('env.production.tmpl', vars).then((v) => MapEntry('$name/env/.env.production', v)),
+      _load(
+        'env.example.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/env/.env.example', v)),
+      _load(
+        'env.dev.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/env/.env.dev', v)),
+      _load(
+        'env.staging.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/env/.env.staging', v)),
+      _load(
+        'env.uat.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/env/.env.uat', v)),
+      _load(
+        'env.production.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/env/.env.production', v)),
       // Project config
-      _load('analysis_options.yaml.tmpl', vars).then((v) => MapEntry('$name/analysis_options.yaml', v)),
-      _load('gitignore.tmpl', vars).then((v) => MapEntry('$name/.gitignore', v)),
+      _load(
+        'analysis_options.yaml.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/analysis_options.yaml', v)),
+      _load(
+        'gitignore.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/.gitignore', v)),
       _load('readme.md.tmpl', vars).then((v) => MapEntry('$name/README.md', v)),
-      _load('dockerfile.tmpl', vars).then((v) => MapEntry('$name/Dockerfile', v)),
+      _load(
+        'dockerfile.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/Dockerfile', v)),
+      _load(
+        'github_ci.yaml.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/.github/workflows/ci.yaml', v)),
     ]);
     final map = Map<String, String>.fromEntries(entries);
     map['$name/pubspec.yaml'] = _buildPubspecContent(name, kAllFeatures);
@@ -146,65 +251,160 @@ class CreateCommandConstants {
 
     // ── Base files (always generated) ───────────────────────────────────────
     futures.addAll([
-      _load('app_config.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/config/app_config.dart', v)),
-      _load('env_loader.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/config/env_loader.dart', v)),
-      _load('dartapi.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/core/dartapi.dart', v)),
-      _load('core.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/core/core.dart', v)),
-      _load('hello_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/hello_controller.dart', v)),
-      _load('env.example.tmpl', vars).then((v) => MapEntry('$name/env/.env.example', v)),
-      _load('env.dev.tmpl', vars).then((v) => MapEntry('$name/env/.env.dev', v)),
-      _load('env.staging.tmpl', vars).then((v) => MapEntry('$name/env/.env.staging', v)),
-      _load('env.uat.tmpl', vars).then((v) => MapEntry('$name/env/.env.uat', v)),
-      _load('env.production.tmpl', vars).then((v) => MapEntry('$name/env/.env.production', v)),
-      _load('analysis_options.yaml.tmpl', vars).then((v) => MapEntry('$name/analysis_options.yaml', v)),
-      _load('gitignore.tmpl', vars).then((v) => MapEntry('$name/.gitignore', v)),
-      _load('readme_minimal.md.tmpl', vars).then((v) => MapEntry('$name/README.md', v)),
-      _load('dockerfile.tmpl', vars).then((v) => MapEntry('$name/Dockerfile', v)),
+      _load(
+        'app_config.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/config/app_config.dart', v)),
+      _load(
+        'env_loader.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/config/env_loader.dart', v)),
+      _load(
+        'dartapi.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/core/dartapi.dart', v)),
+      _load(
+        'core.dart.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/lib/src/core/core.dart', v)),
+      _load('hello_controller.dart.tmpl', vars).then(
+        (v) => MapEntry('$name/lib/src/controllers/hello_controller.dart', v),
+      ),
+      _load(
+        'env.example.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/env/.env.example', v)),
+      _load(
+        'env.dev.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/env/.env.dev', v)),
+      _load(
+        'env.staging.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/env/.env.staging', v)),
+      _load(
+        'env.uat.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/env/.env.uat', v)),
+      _load(
+        'env.production.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/env/.env.production', v)),
+      _load(
+        'analysis_options.yaml.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/analysis_options.yaml', v)),
+      _load(
+        'gitignore.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/.gitignore', v)),
+      _load(
+        'readme_minimal.md.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/README.md', v)),
+      _load(
+        'dockerfile.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/Dockerfile', v)),
+      _load(
+        'github_ci.yaml.tmpl',
+        vars,
+      ).then((v) => MapEntry('$name/.github/workflows/ci.yaml', v)),
     ]);
 
     // ── auth feature ─────────────────────────────────────────────────────────
     if (features.contains(Feature.auth)) {
       futures.addAll([
-        _load('auth_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/auth_controller.dart', v)),
-        _load('auth_service.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/services/auth_service.dart', v)),
-        _load('login_dto.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/dto/login_dto.dart', v)),
-        _load('token_response.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/models/token_response.dart', v)),
-        _load('user.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/models/user.dart', v)),
-        _load('auth_controller_test.dart.tmpl', vars).then((v) => MapEntry('$name/test/services/auth_service_test.dart', v)),
+        _load('auth_controller.dart.tmpl', vars).then(
+          (v) => MapEntry('$name/lib/src/controllers/auth_controller.dart', v),
+        ),
+        _load(
+          'auth_service.dart.tmpl',
+          vars,
+        ).then((v) => MapEntry('$name/lib/src/services/auth_service.dart', v)),
+        _load(
+          'login_dto.dart.tmpl',
+          vars,
+        ).then((v) => MapEntry('$name/lib/src/dto/login_dto.dart', v)),
+        _load(
+          'token_response.dart.tmpl',
+          vars,
+        ).then((v) => MapEntry('$name/lib/src/models/token_response.dart', v)),
+        _load(
+          'user.dart.tmpl',
+          vars,
+        ).then((v) => MapEntry('$name/lib/src/models/user.dart', v)),
+        _load('auth_controller_test.dart.tmpl', vars).then(
+          (v) => MapEntry('$name/test/services/auth_service_test.dart', v),
+        ),
       ]);
     }
 
     // ── db feature ────────────────────────────────────────────────────────────
     if (features.contains(Feature.db)) {
       futures.addAll([
-        _load('user_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/user_controller.dart', v)),
-        _load('product_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/product_controller.dart', v)),
-        _load('user_service.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/services/user_service.dart', v)),
-        _load('product_service.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/services/product_service.dart', v)),
-        _load('user_repository.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/repositories/user_repository.dart', v)),
-        _load('product_repository.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/repositories/product_repository.dart', v)),
-        _load('user_dto.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/dto/user_dto.dart', v)),
-        _load('product_dto.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/dto/product_dto.dart', v)),
-        _load('migration_users.sql.tmpl', vars).then((v) => MapEntry('$name/migrations/0001_create_users_table.sql', v)),
-        _load('migration_products.sql.tmpl', vars).then((v) => MapEntry('$name/migrations/0002_create_products_table.sql', v)),
-        _load('user_controller_test.dart.tmpl', vars).then((v) => MapEntry('$name/test/services/user_service_test.dart', v)),
+        _load('user_controller.dart.tmpl', vars).then(
+          (v) => MapEntry('$name/lib/src/controllers/user_controller.dart', v),
+        ),
+        _load('product_controller.dart.tmpl', vars).then(
+          (v) =>
+              MapEntry('$name/lib/src/controllers/product_controller.dart', v),
+        ),
+        _load(
+          'user_service.dart.tmpl',
+          vars,
+        ).then((v) => MapEntry('$name/lib/src/services/user_service.dart', v)),
+        _load('product_service.dart.tmpl', vars).then(
+          (v) => MapEntry('$name/lib/src/services/product_service.dart', v),
+        ),
+        _load('user_repository.dart.tmpl', vars).then(
+          (v) => MapEntry('$name/lib/src/repositories/user_repository.dart', v),
+        ),
+        _load('product_repository.dart.tmpl', vars).then(
+          (v) =>
+              MapEntry('$name/lib/src/repositories/product_repository.dart', v),
+        ),
+        _load(
+          'user_dto.dart.tmpl',
+          vars,
+        ).then((v) => MapEntry('$name/lib/src/dto/user_dto.dart', v)),
+        _load(
+          'product_dto.dart.tmpl',
+          vars,
+        ).then((v) => MapEntry('$name/lib/src/dto/product_dto.dart', v)),
+        _load('migration_users.sql.tmpl', vars).then(
+          (v) => MapEntry('$name/migrations/0001_create_users_table.sql', v),
+        ),
+        _load('migration_products.sql.tmpl', vars).then(
+          (v) => MapEntry('$name/migrations/0002_create_products_table.sql', v),
+        ),
+        _load('user_controller_test.dart.tmpl', vars).then(
+          (v) => MapEntry('$name/test/services/user_service_test.dart', v),
+        ),
         // user.dart model — also needed for db (skip if auth already added it)
         if (!features.contains(Feature.auth))
-          _load('user.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/models/user.dart', v)),
+          _load(
+            'user.dart.tmpl',
+            vars,
+          ).then((v) => MapEntry('$name/lib/src/models/user.dart', v)),
       ]);
     }
 
     // ── files feature ─────────────────────────────────────────────────────────
     if (features.contains(Feature.files)) {
       futures.add(
-        _load('files_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/files_controller.dart', v)),
+        _load('files_controller.dart.tmpl', vars).then(
+          (v) => MapEntry('$name/lib/src/controllers/files_controller.dart', v),
+        ),
       );
     }
 
     // ── ws feature ────────────────────────────────────────────────────────────
     if (features.contains(Feature.ws)) {
       futures.add(
-        _load('ws_controller.dart.tmpl', vars).then((v) => MapEntry('$name/lib/src/controllers/ws_controller.dart', v)),
+        _load('ws_controller.dart.tmpl', vars).then(
+          (v) => MapEntry('$name/lib/src/controllers/ws_controller.dart', v),
+        ),
       );
     }
 
@@ -234,9 +434,11 @@ class CreateCommandConstants {
     if (hasAny) buf.writeln();
     // The project defines its own AppConfig subclass; hide the base one that
     // the dartapi_core barrel exports to avoid an ambiguous_import error.
-    buf.writeln(hasAny
-        ? "import 'package:dartapi_core/dartapi_core.dart' hide AppConfig;"
-        : "import 'package:dartapi_core/dartapi_core.dart';");
+    buf.writeln(
+      hasAny
+          ? "import 'package:dartapi_core/dartapi_core.dart' hide AppConfig;"
+          : "import 'package:dartapi_core/dartapi_core.dart';",
+    );
     if (hasDb) buf.writeln("import 'package:dartapi_db/dartapi_db.dart';");
     buf.writeln();
     // loadEnvFile/mergeEnv come from the dartapi_core import; the generated
@@ -245,21 +447,35 @@ class CreateCommandConstants {
     if (hasAny) {
       buf.writeln("import 'package:$name/src/config/app_config.dart';");
     }
-    buf.writeln("import 'package:$name/src/controllers/hello_controller.dart';");
+    buf.writeln(
+      "import 'package:$name/src/controllers/hello_controller.dart';",
+    );
     if (hasAuth) {
-      buf.writeln("import 'package:$name/src/controllers/auth_controller.dart';");
+      buf.writeln(
+        "import 'package:$name/src/controllers/auth_controller.dart';",
+      );
       buf.writeln("import 'package:$name/src/services/auth_service.dart';");
     }
     if (hasDb) {
-      buf.writeln("import 'package:$name/src/controllers/product_controller.dart';");
-      buf.writeln("import 'package:$name/src/controllers/user_controller.dart';");
-      buf.writeln("import 'package:$name/src/repositories/product_repository.dart';");
-      buf.writeln("import 'package:$name/src/repositories/user_repository.dart';");
+      buf.writeln(
+        "import 'package:$name/src/controllers/product_controller.dart';",
+      );
+      buf.writeln(
+        "import 'package:$name/src/controllers/user_controller.dart';",
+      );
+      buf.writeln(
+        "import 'package:$name/src/repositories/product_repository.dart';",
+      );
+      buf.writeln(
+        "import 'package:$name/src/repositories/user_repository.dart';",
+      );
       buf.writeln("import 'package:$name/src/services/product_service.dart';");
       buf.writeln("import 'package:$name/src/services/user_service.dart';");
     }
     if (hasFiles) {
-      buf.writeln("import 'package:$name/src/controllers/files_controller.dart';");
+      buf.writeln(
+        "import 'package:$name/src/controllers/files_controller.dart';",
+      );
     }
     if (hasWs) {
       buf.writeln("import 'package:$name/src/controllers/ws_controller.dart';");
@@ -280,9 +496,15 @@ class CreateCommandConstants {
 
     // Auth setup
     if (hasAuth) {
-      buf.writeln('  // InMemoryTokenStore keeps revoked JTIs in-process. For multi-instance');
-      buf.writeln('  // deployments, extend TokenStore with a Redis/database backend and');
-      buf.writeln('  // override revokeIfActive with an atomic op (e.g. Redis SET NX EX).');
+      buf.writeln(
+        '  // InMemoryTokenStore keeps revoked JTIs in-process. For multi-instance',
+      );
+      buf.writeln(
+        '  // deployments, extend TokenStore with a Redis/database backend and',
+      );
+      buf.writeln(
+        '  // override revokeIfActive with an atomic op (e.g. Redis SET NX EX).',
+      );
       buf.writeln('  final tokenStore = InMemoryTokenStore();');
       buf.writeln('  final jwtService = JwtService(');
       buf.writeln('    accessTokenSecret: config.jwtAccessSecret,');
@@ -290,13 +512,18 @@ class CreateCommandConstants {
       buf.writeln("    issuer: '$name',");
       buf.writeln("    audience: '$name-users',");
       buf.writeln('    tokenStore: tokenStore,');
-      buf.writeln('    // Fires when an already-consumed refresh token is presented again —');
-      buf.writeln('    // the classic token-theft signal. Respond by terminating the whole');
+      buf.writeln(
+        '    // Fires when an already-consumed refresh token is presented again —',
+      );
+      buf.writeln(
+        '    // the classic token-theft signal. Respond by terminating the whole',
+      );
       buf.writeln("    // session, e.g. revoke all tokens for payload['sub'].");
       buf.writeln('    onRefreshTokenReuse: (payload) async {');
       buf.writeln('      // ignore: avoid_print');
       buf.writeln(
-          r"      print('[security] refresh token reuse detected for sub=${payload['sub']}');");
+        r"      print('[security] refresh token reuse detected for sub=${payload['sub']}');",
+      );
       buf.writeln('    },');
       buf.writeln('  );');
       buf.writeln('  final authService = AuthService(jwtService: jwtService);');
@@ -314,27 +541,53 @@ class CreateCommandConstants {
       buf.writeln('      database: config.dbName,');
       buf.writeln('      username: config.dbUser,');
       buf.writeln('      password: config.dbPassword,');
-      buf.writeln('      poolConfig: PoolConfig(maxConnections: config.dbPoolSize),');
+      buf.writeln(
+        '      poolConfig: PoolConfig(maxConnections: config.dbPoolSize),',
+      );
       buf.writeln('    ));');
       buf.writeln('    await MigrationRunner(db).migrate();');
       buf.writeln('  }');
       buf.writeln('  final UserRepository userRepo =');
-      buf.writeln('      db != null ? DbUserRepository(db) : InMemoryUserRepository();');
+      buf.writeln(
+        '      db != null ? DbUserRepository(db) : InMemoryUserRepository();',
+      );
       buf.writeln('  final ProductRepository productRepo =');
-      buf.writeln('      db != null ? DbProductRepository(db) : InMemoryProductRepository();');
+      buf.writeln(
+        '      db != null ? DbProductRepository(db) : InMemoryProductRepository();',
+      );
       buf.writeln('  final userService = UserService(repository: userRepo);');
-      buf.writeln('  final productService = ProductService(repository: productRepo);');
+      buf.writeln(
+        '  final productService = ProductService(repository: productRepo);',
+      );
       buf.writeln();
     }
 
     // App construction
     if (hasAny) {
-      buf.writeln("  final app = DartAPI(appName: '$name', corsOrigin: config.corsOrigin);");
+      buf.writeln(
+        "  final app = DartAPI(appName: '$name', corsOrigin: config.corsOrigin);",
+      );
     } else {
       buf.writeln("  final app = DartAPI(appName: '$name');");
     }
-    buf.writeln('  app.enableHealthCheck();');
-    buf.writeln('  // Structured JSON request logs; the /health probe is not logged.');
+    if (hasDb) {
+      buf.writeln(
+        '  // GET /health — reports "degraded" when the DB stops answering.',
+      );
+      buf.writeln('  final dbForHealth = db;');
+      buf.writeln('  app.enableHealthCheck(checks: [');
+      buf.writeln('    if (dbForHealth != null)');
+      buf.writeln('      () async => HealthCheckResult(');
+      buf.writeln(
+        "          name: 'database', healthy: await dbForHealth.ping()),",
+      );
+      buf.writeln('  ]);');
+    } else {
+      buf.writeln('  app.enableHealthCheck();');
+    }
+    buf.writeln(
+      '  // Structured JSON request logs; the /health probe is not logged.',
+    );
     buf.writeln('  app.configureLogging(');
     buf.writeln('    format: LogFormat.json,');
     buf.writeln("    excludePaths: ['/health'],");
@@ -345,12 +598,16 @@ class CreateCommandConstants {
     buf.writeln('  app.addControllers([');
     buf.writeln('    HelloController(),');
     if (hasAuth) {
-      buf.writeln('    AuthController(authService: authService, jwtService: jwtService),');
+      buf.writeln(
+        '    AuthController(authService: authService, jwtService: jwtService),',
+      );
     }
     if (hasDb) {
       final jwtArg = hasAuth ? ', jwtService: jwtService' : '';
       buf.writeln('    UserController(userService: userService$jwtArg),');
-      buf.writeln('    ProductController(productService: productService$jwtArg),');
+      buf.writeln(
+        '    ProductController(productService: productService$jwtArg),',
+      );
     }
     if (hasFiles) {
       final jwtArg = hasAuth ? 'jwtService: jwtService' : '';
@@ -369,21 +626,31 @@ class CreateCommandConstants {
       buf.writeln();
     }
 
-    buf.writeln("  // `address` is configurable — e.g. '127.0.0.1' to bind loopback only.");
-    buf.writeln('  // For a graceful programmatic shutdown (tests, embedding), call');
-    buf.writeln('  // `await app.stop()`; SIGINT/SIGTERM are already handled by start().');
+    buf.writeln(
+      "  // `address` is configurable — e.g. '127.0.0.1' to bind loopback only.",
+    );
+    buf.writeln(
+      '  // For a graceful programmatic shutdown (tests, embedding), call',
+    );
+    buf.writeln(
+      '  // `await app.stop()`; SIGINT/SIGTERM are already handled by start().',
+    );
     buf.writeln("  await app.start(port: port, address: '0.0.0.0');");
     buf.writeln('}');
 
     // ── Helpers ───────────────────────────────────────────────────────────────
     buf.writeln();
-    buf.writeln('int _parsePort(List<String> args, {required int defaultPort}) {');
+    buf.writeln(
+      'int _parsePort(List<String> args, {required int defaultPort}) {',
+    );
     buf.writeln('  for (var i = 0; i < args.length; i++) {');
     buf.writeln("    if (args[i] == '--port' && i + 1 < args.length) {");
     buf.writeln('      return int.tryParse(args[i + 1]) ?? defaultPort;');
     buf.writeln('    }');
     buf.writeln("    if (args[i].startsWith('--port=')) {");
-    buf.writeln("      return int.tryParse(args[i].split('=')[1]) ?? defaultPort;");
+    buf.writeln(
+      "      return int.tryParse(args[i].split('=')[1]) ?? defaultPort;",
+    );
     buf.writeln('    }');
     buf.writeln('  }');
     buf.writeln('  return defaultPort;');
@@ -413,10 +680,10 @@ class CreateCommandConstants {
     buf.writeln('  sdk: ^3.7.2');
     buf.writeln();
     buf.writeln('dependencies:');
-    buf.writeln('  dartapi_core: ^0.3.0');
+    buf.writeln('  dartapi_core: ^0.4.0');
     buf.writeln('  shelf: ^1.4.2');
     if (features.contains(Feature.db)) {
-      buf.writeln('  dartapi_db: ^0.0.15');
+      buf.writeln('  dartapi_db: ^0.1.0');
     }
     if (features.contains(Feature.ws)) {
       buf.writeln('  shelf_web_socket: ^3.0.0');

@@ -16,13 +16,14 @@ void generateMigration(String name) {
     print('📁 Created migrations/ directory.');
   }
 
-  final existing = migrationsDir
-      .listSync()
-      .whereType<File>()
-      .where((f) => f.path.endsWith('.sql'))
-      .map((f) => f.uri.pathSegments.last)
-      .toList()
-    ..sort();
+  final existing =
+      migrationsDir
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.sql'))
+          .map((f) => f.uri.pathSegments.last)
+          .toList()
+        ..sort();
 
   int nextNumber = 1;
   if (existing.isNotEmpty) {

@@ -21,7 +21,10 @@ void main() {
   group('generateResource', () {
     test('creates controller, dto, and model files', () async {
       await generateResource('Order');
-      expect(File('lib/src/controllers/order_controller.dart').existsSync(), isTrue);
+      expect(
+        File('lib/src/controllers/order_controller.dart').existsSync(),
+        isTrue,
+      );
       expect(File('lib/src/dto/order_dto.dart').existsSync(), isTrue);
       expect(File('lib/src/models/order.dart').existsSync(), isTrue);
     });
@@ -29,14 +32,18 @@ void main() {
     test('controller defines the correct class name', () async {
       await generateResource('Product');
       final content =
-          File('lib/src/controllers/product_controller.dart').readAsStringSync();
+          File(
+            'lib/src/controllers/product_controller.dart',
+          ).readAsStringSync();
       expect(content, contains('class ProductController'));
     });
 
     test('controller extends BaseController', () async {
       await generateResource('Invoice');
       final content =
-          File('lib/src/controllers/invoice_controller.dart').readAsStringSync();
+          File(
+            'lib/src/controllers/invoice_controller.dart',
+          ).readAsStringSync();
       expect(content, contains('extends BaseController'));
     });
 
@@ -59,8 +66,7 @@ void main() {
 
     test('model defines the correct class', () async {
       await generateResource('Category');
-      final content =
-          File('lib/src/models/category.dart').readAsStringSync();
+      final content = File('lib/src/models/category.dart').readAsStringSync();
       expect(content, contains('class Category'));
       expect(content, contains('implements Serializable'));
       expect(content, contains('toJson'));
@@ -82,17 +88,25 @@ void main() {
         'lib/src/models/item.dart',
       ]) {
         final content = File(path).readAsStringSync();
-        expect(content, isNot(contains('{{ResourceName}}')),
-            reason: '$path still has {{ResourceName}} placeholder');
-        expect(content, isNot(contains('{{resourcePath}}')),
-            reason: '$path still has {{resourcePath}} placeholder');
+        expect(
+          content,
+          isNot(contains('{{ResourceName}}')),
+          reason: '$path still has {{ResourceName}} placeholder',
+        );
+        expect(
+          content,
+          isNot(contains('{{resourcePath}}')),
+          reason: '$path still has {{resourcePath}} placeholder',
+        );
       }
     });
 
     test('lowercase input is capitalised in class names', () async {
       await generateResource('payment');
       final content =
-          File('lib/src/controllers/payment_controller.dart').readAsStringSync();
+          File(
+            'lib/src/controllers/payment_controller.dart',
+          ).readAsStringSync();
       expect(content, contains('class PaymentController'));
     });
 

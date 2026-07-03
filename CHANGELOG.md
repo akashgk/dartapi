@@ -1,3 +1,20 @@
+## 0.2.2
+
+**Refresh-token reuse now actually terminates the session.**
+
+- Generated projects depend on `dartapi_core ^0.6.0`.
+- The generated `onRefreshTokenReuse` handler previously only printed a
+  warning (the comment said "revoke the whole session", but the framework
+  had no API for it). It now calls the new
+  `jwtService.revokeAllForUser(sub)` — every outstanding access and
+  refresh token for the affected user, including any an attacker just
+  minted, becomes invalid and a fresh login is required. Applies to both
+  the `--full` and `--with=auth` scaffolds.
+- Scaffold comments now spell out the multi-process caveat: behind
+  `--isolates=N` or multiple instances, `InMemoryTokenStore` must be
+  replaced with a shared backend overriding `revokeIfActive` and
+  `revokeSubject`/`subjectRevocationCutoff`.
+
 ## 0.2.1
 
 - Generated projects depend on `dartapi_core ^0.5.0` (OpenAPI overhaul).

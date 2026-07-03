@@ -506,7 +506,8 @@ class CreateCommandConstants {
         '  // override revokeIfActive with an atomic op (e.g. Redis SET NX EX).',
       );
       buf.writeln('  final tokenStore = InMemoryTokenStore();');
-      buf.writeln('  final jwtService = JwtService(');
+      buf.writeln('  late final JwtService jwtService;');
+      buf.writeln('  jwtService = JwtService(');
       buf.writeln('    accessTokenSecret: config.jwtAccessSecret,');
       buf.writeln('    refreshTokenSecret: config.jwtRefreshSecret,');
       buf.writeln("    issuer: '$name',");
@@ -516,14 +517,20 @@ class CreateCommandConstants {
         '    // Fires when an already-consumed refresh token is presented again —',
       );
       buf.writeln(
-        '    // the classic token-theft signal. Respond by terminating the whole',
+        '    // the classic token-theft signal. Kill the whole session: every',
       );
-      buf.writeln("    // session, e.g. revoke all tokens for payload['sub'].");
-      buf.writeln('    onRefreshTokenReuse: (payload) async {');
-      buf.writeln('      // ignore: avoid_print');
       buf.writeln(
-        r"      print('[security] refresh token reuse detected for sub=${payload['sub']}');",
+        '    // outstanding token for this user becomes invalid (fresh login required).',
       );
+      buf.writeln('    onRefreshTokenReuse: (payload) async {');
+      buf.writeln("      final sub = payload['sub'];");
+      buf.writeln('      if (sub is String) {');
+      buf.writeln('        // ignore: avoid_print');
+      buf.writeln(
+        r"        print('[security] refresh token reuse for sub=$sub — revoking session');",
+      );
+      buf.writeln('        await jwtService.revokeAllForUser(sub);');
+      buf.writeln('      }');
       buf.writeln('    },');
       buf.writeln('  );');
       buf.writeln('  final authService = AuthService(jwtService: jwtService);');
@@ -680,7 +687,7 @@ class CreateCommandConstants {
     buf.writeln('  sdk: ^3.7.2');
     buf.writeln();
     buf.writeln('dependencies:');
-    buf.writeln('  dartapi_core: ^0.5.0');
+    buf.writeln('  dartapi_core: ^0.6.0');
     buf.writeln('  shelf: ^1.4.2');
     if (features.contains(Feature.db)) {
       buf.writeln('  dartapi_db: ^0.1.0');

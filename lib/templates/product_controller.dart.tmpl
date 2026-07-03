@@ -75,7 +75,7 @@ class ProductController extends BaseController {
         description:
             'Adds a new product. A background task fires after the response '
             'is sent — replace the placeholder with real notification logic.',
-        requestSchema: ProductDto.schema,
+        requestFields: ProductDto.fields,
         responseSchema: ProductDto.schema,
         security: _jwtService != null ? [SecurityScheme.bearer] : [],
       );
@@ -88,7 +88,7 @@ class ProductController extends BaseController {
         middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'Update product',
         description: 'Replaces all fields of an existing product.',
-        requestSchema: ProductDto.schema,
+        requestFields: ProductDto.fields,
         responseSchema: ProductDto.schema,
         security: _jwtService != null ? [SecurityScheme.bearer] : [],
       );

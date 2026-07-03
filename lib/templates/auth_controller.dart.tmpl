@@ -29,7 +29,7 @@ class AuthController extends BaseController {
         summary: 'Login',
         description:
             'Authenticates a user and returns an access + refresh token pair.',
-        requestSchema: LoginDTO.schema,
+        requestFields: LoginDTO.fields,
         responseSchema: TokenResponse.schema,
       );
 

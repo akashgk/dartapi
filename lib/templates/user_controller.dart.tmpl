@@ -83,7 +83,7 @@ class UserController extends BaseController {
         description:
             'Creates a new user. All fields are validated — the response '
             'includes the full list of validation errors when present.',
-        requestSchema: UserDTO.schema,
+        requestFields: UserDTO.fields,
         security: _jwtService != null ? [SecurityScheme.bearer] : [],
       );
 
@@ -95,7 +95,7 @@ class UserController extends BaseController {
         middlewares: [if (_jwtService != null) authMiddleware(_jwtService)],
         summary: 'Update user',
         description: 'Replaces all fields of an existing user. Throws 404 if not found.',
-        requestSchema: UserDTO.schema,
+        requestFields: UserDTO.fields,
         security: _jwtService != null ? [SecurityScheme.bearer] : [],
       );
 

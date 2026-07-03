@@ -1,3 +1,13 @@
+## 0.2.1
+
+- Generated projects depend on `dartapi_core ^0.5.0` (OpenAPI overhaul).
+- Generated controllers use the new `requestFields:` pattern — the same
+  `FieldSet` that validates the request now also produces its OpenAPI
+  schema, and `422`/`400` error responses are documented automatically.
+  Swagger UI/ReDoc assets are version-pinned, `enableDocs` ordering no
+  longer matters, and every operation gets an `operationId` for clean
+  client code generation.
+
 ## 0.2.0
 
 **Generated projects are production-deployable out of the box.**

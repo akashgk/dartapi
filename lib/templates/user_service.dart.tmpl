@@ -1,4 +1,5 @@
 import 'package:dartapi_core/dartapi_core.dart';
+import 'package:dartapi_db/dartapi_db.dart' show UniqueViolationException;
 import '../dto/user_dto.dart';
 import '../models/user.dart';
 import '../repositories/user_repository.dart';
@@ -17,8 +18,16 @@ class UserService {
     return user;
   }
 
-  Future<User> createUser(UserDTO dto) =>
-      _repo.create(User(name: dto.name, age: dto.age, email: dto.email));
+  Future<User> createUser(UserDTO dto) async {
+    try {
+      return await _repo.create(
+        User(name: dto.name, age: dto.age, email: dto.email),
+      );
+    } on UniqueViolationException {
+      // users.email is UNIQUE — a clean 409 instead of a 500.
+      throw const ApiException(409, 'Email already registered');
+    }
+  }
 
   Future<User> updateUser(int id, UserDTO dto) async {
     final updated = await _repo.update(

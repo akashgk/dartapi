@@ -690,7 +690,7 @@ class CreateCommandConstants {
     buf.writeln('  dartapi_core: ^0.7.0');
     buf.writeln('  shelf: ^1.4.2');
     if (features.contains(Feature.db)) {
-      buf.writeln('  dartapi_db: ^0.1.0');
+      buf.writeln('  dartapi_db: ^0.2.0');
     }
     if (features.contains(Feature.ws)) {
       buf.writeln('  shelf_web_socket: ^3.0.0');

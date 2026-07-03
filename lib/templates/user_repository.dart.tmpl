@@ -43,6 +43,11 @@ class InMemoryUserRepository implements UserRepository {
 
   @override
   Future<User> create(User user) async {
+    // Mirror the DB behaviour (users.email is UNIQUE) so dev and prod act
+    // the same — the service maps this to a 409.
+    if (_store.any((u) => u.email == user.email)) {
+      throw const UniqueViolationException('users.email already exists');
+    }
     final created = User(
       id: _nextId++,
       name: user.name,
@@ -85,14 +90,13 @@ class DbUserRepository implements UserRepository {
 
   @override
   Future<List<User>> findAll({int page = 1, int limit = 20}) async {
-    // Pagination happens in SQL — only the requested page leaves the DB.
+    // Pagination happens in SQL — one call also gives .total/.totalPages/
+    // .hasNext when you need them for a PaginatedResponse.
     final result = await _db
         .query('users')
         .orderBy('id')
-        .limit(limit)
-        .offset((page - 1) * limit)
-        .get();
-    return result.rows.map(User.fromRow).toList();
+        .paginate(page: page, limit: limit);
+    return result.map(User.fromRow);
   }
 
   @override

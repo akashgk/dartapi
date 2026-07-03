@@ -69,6 +69,21 @@ void main() {
         final after = await userService.getUsers();
         expect(after.length, equals(before.length + 1));
       });
+
+      test('duplicate email is rejected with 409', () async {
+        await userService.createUser(
+          const UserDTO(name: 'Eve', age: 20, email: 'eve@example.com'),
+        );
+        expect(
+          () => userService.createUser(
+            const UserDTO(name: 'Eve Again', age: 21, email: 'eve@example.com'),
+          ),
+          throwsA(
+            isA<ApiException>()
+                .having((e) => e.statusCode, 'statusCode', 409),
+          ),
+        );
+      });
     });
 
     group('updateUser', () {

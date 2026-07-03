@@ -76,14 +76,13 @@ class DbProductRepository implements ProductRepository {
 
   @override
   Future<List<ProductDto>> findAll({int page = 1, int limit = 20}) async {
-    // Pagination happens in SQL — only the requested page leaves the DB.
+    // Pagination happens in SQL — one call also gives .total/.totalPages/
+    // .hasNext when you need them for a PaginatedResponse.
     final result = await _db
         .query('products')
         .orderBy('id')
-        .limit(limit)
-        .offset((page - 1) * limit)
-        .get();
-    return result.rows.map(ProductDto.fromRow).toList();
+        .paginate(page: page, limit: limit);
+    return result.map(ProductDto.fromRow);
   }
 
   @override

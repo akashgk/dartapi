@@ -1,3 +1,19 @@
+## 0.2.4
+
+**Generated projects ride the `dartapi_db` 0.2.0 DX overhaul.**
+
+- **`DATABASE_URL` support** — generated `main.dart` connects via
+  `DatabaseFactory.fromUrl` when `DATABASE_URL` is set (the format every
+  PaaS hands you, TLS via `?sslmode=require`), falling back to the
+  discrete `DB_*` variables; `.env.example` documents it.
+- **Duplicate email is now a 409, not a 500.** `UserService.createUser`
+  catches the new typed `UniqueViolationException`; the in-memory
+  repository mirrors the DB's UNIQUE behaviour so dev and prod act the
+  same.
+- Repositories use the new one-call `paginate()` (SQL `COUNT` +
+  `LIMIT/OFFSET`).
+- Templates depend on `dartapi_db ^0.2.0`.
+
 ## 0.2.3
 
 **DB-layer fixes from external code review + dependency refresh.**

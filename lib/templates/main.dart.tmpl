@@ -42,9 +42,19 @@ Future<void> _startApp(int port, {bool shared = false}) async {
 
   // ── Database (optional) ────────────────────────────────────────────────────
   // DB_ENABLED=false (the dev default) → in-memory repos, no DB needed.
-  // DB_ENABLED=true  → PostgreSQL; swap DbType.postgres for mysql/sqlite.
+  // DATABASE_URL (what Neon/Supabase/Railway/etc. hand you) wins when set:
+  //   postgres://user:pass@host:5432/db?sslmode=require
+  // Otherwise the discrete DB_* env vars are used (PostgreSQL; swap
+  // DbType.postgres for mysql/sqlite).
   DartApiDB? db;
-  if (config.dbEnabled) {
+  final databaseUrl = Platform.environment['DATABASE_URL'];
+  if (databaseUrl != null && databaseUrl.isNotEmpty) {
+    db = await DatabaseFactory.fromUrl(
+      databaseUrl,
+      poolConfig: PoolConfig(maxConnections: config.dbPoolSize),
+    );
+    await MigrationRunner(db).migrate();
+  } else if (config.dbEnabled) {
     db = await DatabaseFactory.create(DbConfig(
       type: DbType.postgres,
       host: config.dbHost,

@@ -1,3 +1,23 @@
+## 0.2.3
+
+**DB-layer fixes from external code review + dependency refresh.**
+
+- **Pagination now happens in SQL.** `DbUserRepository.findAll` /
+  `DbProductRepository.findAll` previously fetched every row and paginated
+  in Dart; they now use the query builder's `LIMIT`/`OFFSET`
+  (`db.query(...).orderBy('id').limit(n).offset(m)`), so only the requested
+  page leaves the database.
+- **No more plaintext credential comparison.** The demo login in generated
+  projects stores the demo password as a salted PBKDF2 hash and verifies it
+  with `PasswordHasher.verify` (constant-time) from `dartapi_core 0.7.0` —
+  the same pattern to keep when swapping in a real user table (the TODO
+  shows the exact code).
+- Generated README gains **Transactions** (`db.transaction` rollback
+  example) and **Pagination** sections.
+- Generated projects depend on `dartapi_core ^0.7.0`; dependency floors
+  raised to current latest (`shelf_router ^1.1.4`, `shelf_static ^1.1.3`,
+  `path ^1.9.1`, `test ^1.31.2`).
+
 ## 0.2.2
 
 **Refresh-token reuse now actually terminates the session.**

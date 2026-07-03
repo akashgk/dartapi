@@ -469,6 +469,37 @@ dartapi db migrate
 dartapi db migrate --dry-run
 ```
 
+### Transactions
+
+Multi-step writes should be atomic — `dartapi_db` supports transactions on
+all three drivers. If the callback throws, everything rolls back:
+
+```dart
+final orderId = await db.transaction((tx) async {
+  final order = await tx.insert('orders', {'user_id': userId, 'total': total});
+  final id = order.first!['id'];
+  await tx.insertBatch('order_items', [
+    for (final item in items)
+      {'order_id': id, 'sku': item.sku, 'qty': item.qty},
+  ]);
+  return id;
+});
+```
+
+### Pagination
+
+The DB-backed repositories paginate **in SQL** (`LIMIT`/`OFFSET` via the
+query builder), so only the requested page ever leaves the database:
+
+```dart
+final result = await db
+    .query('users')
+    .orderBy('id')
+    .limit(limit)
+    .offset((page - 1) * limit)
+    .get();
+```
+
 ---
 
 ## Running Tests

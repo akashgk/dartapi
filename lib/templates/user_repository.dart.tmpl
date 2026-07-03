@@ -85,9 +85,14 @@ class DbUserRepository implements UserRepository {
 
   @override
   Future<List<User>> findAll({int page = 1, int limit = 20}) async {
-    final result = await _db.select('users');
-    final offset = (page - 1) * limit;
-    return result.rows.skip(offset).take(limit).map(User.fromRow).toList();
+    // Pagination happens in SQL — only the requested page leaves the DB.
+    final result = await _db
+        .query('users')
+        .orderBy('id')
+        .limit(limit)
+        .offset((page - 1) * limit)
+        .get();
+    return result.rows.map(User.fromRow).toList();
   }
 
   @override

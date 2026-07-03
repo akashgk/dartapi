@@ -687,7 +687,7 @@ class CreateCommandConstants {
     buf.writeln('  sdk: ^3.7.2');
     buf.writeln();
     buf.writeln('dependencies:');
-    buf.writeln('  dartapi_core: ^0.6.0');
+    buf.writeln('  dartapi_core: ^0.7.0');
     buf.writeln('  shelf: ^1.4.2');
     if (features.contains(Feature.db)) {
       buf.writeln('  dartapi_db: ^0.1.0');
@@ -698,7 +698,7 @@ class CreateCommandConstants {
     }
     buf.writeln();
     buf.writeln('dev_dependencies:');
-    buf.writeln('  test: ^1.24.0');
+    buf.writeln('  test: ^1.31.2');
     buf.writeln('  lints: ^6.1.0');
     return buf.toString();
   }

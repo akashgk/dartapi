@@ -7,18 +7,26 @@ class AuthService {
 
   AuthService({required JwtService jwtService}) : _jwtService = jwtService;
 
+  // ── DEMO USER — replace before production ───────────────────────────────
+  // One in-memory user (admin@example.com / password) so the scaffold works
+  // out of the box. The password is stored as a salted PBKDF2 hash and
+  // verified in constant time — the same pattern you keep when moving to a
+  // real user table: store PasswordHasher.hash(password) at registration.
+  static final String _demoPasswordHash = PasswordHasher.hash('password');
+
   /// Validates credentials and issues an access + refresh token pair.
   ///
-  /// TODO: Replace the hardcoded credential check with a real database lookup:
+  /// TODO: Replace the demo user with a real database lookup:
   /// ```dart
   /// final user = await _userRepo.findByEmail(dto.username);
-  /// if (user == null || !verifyPassword(dto.password, user.passwordHash)) {
+  /// if (user == null || !PasswordHasher.verify(dto.password, user.passwordHash)) {
   ///   throw const ApiException(401, 'Invalid credentials');
   /// }
   /// final claims = {'sub': user.id.toString(), 'email': user.email, 'role': user.role};
   /// ```
   TokenResponse login(LoginDTO dto) {
-    if (dto.username != 'admin@example.com' || dto.password != 'password') {
+    if (dto.username != 'admin@example.com' ||
+        !PasswordHasher.verify(dto.password, _demoPasswordHash)) {
       throw const ApiException(401, 'Invalid credentials');
     }
 
